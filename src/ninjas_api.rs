@@ -12,17 +12,17 @@ struct APIConfig {
 #[derive(Serialize, Deserialize)]
 pub struct NutritionInfo {
     pub name: String,
-    pub calories: f32,
-    pub serving_size_g: f32,
-    pub fat_total_g: f32,
-    pub fat_saturated_g: f32,
-    pub protein_g: f32,
-    pub sodium_mg: f32,
-    pub potassium_mg: f32,
-    pub cholesterol_mg: f32,
-    pub carbohydrates_total_g: f32,
-    pub fiber_g: f32,
-    pub sugar_g: f32,
+    pub calories: f64,
+    pub serving_size_g: f64,
+    pub fat_total_g: f64,
+    pub fat_saturated_g: f64,
+    pub protein_g: f64,
+    pub sodium_mg: f64,
+    pub potassium_mg: f64,
+    pub cholesterol_mg: f64,
+    pub carbohydrates_total_g: f64,
+    pub fiber_g: f64,
+    pub sugar_g: f64,
 }
 
 lazy_static! {

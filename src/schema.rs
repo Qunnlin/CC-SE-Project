@@ -1,7 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    dish (dish_id) {
+    dishes (dish_id) {
         dish_id -> Int4,
         name -> Varchar,
         calories -> Float8,
