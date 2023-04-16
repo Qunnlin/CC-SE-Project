@@ -1,6 +1,6 @@
 use crate::schema::dishes;
 use diesel::prelude::*;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize};
 
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct Dish {
@@ -23,4 +23,12 @@ pub struct NewDish {
     pub serving_size: f64,
 
 }
+
+#[derive(Deserialize)]
+pub struct ReqDish {
+    pub name: String,
+    #[serde(default)]
+    pub serving_size: f64
+}
+
 

@@ -1,5 +1,6 @@
 use std::borrow::ToOwned;
 use std::env;
+use actix_web::http::StatusCode;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,26 @@ pub struct NutritionInfo {
     pub sugar_g: f64,
 }
 
+// Clone for Nutrition Info
+impl Clone for NutritionInfo {
+    fn clone(&self) -> Self {
+        NutritionInfo {
+            name: self.name.clone(),
+            calories: self.calories,
+            serving_size_g: self.serving_size_g,
+            fat_total_g: self.fat_total_g,
+            fat_saturated_g: self.fat_saturated_g,
+            protein_g: self.protein_g,
+            sodium_mg: self.sodium_mg,
+            potassium_mg: self.potassium_mg,
+            cholesterol_mg: self.cholesterol_mg,
+            carbohydrates_total_g: self.carbohydrates_total_g,
+            fiber_g: self.fiber_g,
+            sugar_g: self.sugar_g,
+        }
+    }
+}
+
 lazy_static! {
     static ref API_CONFIG: APIConfig = {
         dotenv().expect("Failed to read .env file");
@@ -38,8 +59,10 @@ lazy_static! {
 }
 
 
-pub async fn get_nutrition_info(dish_name: &str) -> Vec<NutritionInfo>{
-    let url = format!("{}{}", API_CONFIG.base_url, dish_name);
+pub async fn get_nutrition_info(dish_name: &str) -> Result<Vec<NutritionInfo>, StatusCode>{
+
+
+    let url = format!("{}{}", API_CONFIG.base_url,dish_name);
     let client = reqwest::Client::new();
     let response = client.get(&url)
         .header("X-Api-Key", API_CONFIG.api_key.clone())
@@ -47,7 +70,12 @@ pub async fn get_nutrition_info(dish_name: &str) -> Vec<NutritionInfo>{
         .await
         .expect("Failed to send request");
 
-    // get response body string
+
+    if response.status() != 200 {
+        return Err(response.status());
+    }
+
+    // Check if body is empty
     let body = match response.text().await {
         Ok(body) => body,
         Err(e) => panic!("Error: {}", e),
@@ -58,7 +86,7 @@ pub async fn get_nutrition_info(dish_name: &str) -> Vec<NutritionInfo>{
         Err(e) => panic!("Error: {}", e),
     };
 
-    nutrition_info
+    Ok(nutrition_info)
 
 }
 
