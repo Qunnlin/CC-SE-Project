@@ -5,11 +5,16 @@ use dotenv::dotenv;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
+
+/// Struct to hold the API configuration
+///
+/// The struct contains the base URL and the API key and is populated from the .env file
 struct APIConfig {
     base_url: String,
     api_key: String,
 }
 
+/// Struct to hold the nutrition information returned by the API
 #[derive(Serialize, Deserialize)]
 pub struct NutritionInfo {
     pub name: String,
@@ -26,7 +31,7 @@ pub struct NutritionInfo {
     pub sugar_g: f64,
 }
 
-// Clone for Nutrition Info
+/// Implement the Clone trait for NutritionInfo
 impl Clone for NutritionInfo {
     fn clone(&self) -> Self {
         NutritionInfo {
@@ -46,6 +51,7 @@ impl Clone for NutritionInfo {
     }
 }
 
+/// Create a static instance of the API configuration ard populate it from the .env file
 lazy_static! {
     static ref API_CONFIG: APIConfig = {
         dotenv().expect("Failed to read .env file");
@@ -58,36 +64,48 @@ lazy_static! {
     };
 }
 
-
+/// Function to get the nutrition information for a dish from the Ninjas API
+/// ## Arguments
+/// * `dish_name` - The name of the dish to get the nutrition information for
+/// ## Returns
+/// * `Result<Vec<NutritionInfo>, StatusCode>` - A vector of NutritionInfo structs or an error code
 pub async fn get_nutrition_info(dish_name: &str) -> Result<Vec<NutritionInfo>, StatusCode>{
 
-
-    let url = format!("{}{}", API_CONFIG.base_url,dish_name);
+    /// Create the URL for the API call
+    let url = format!("{}{}", API_CONFIG.base_url, dish_name);
+    /// Create a new [reqwest::Client](https://docs.rs/reqwest/0.11.3/reqwest/struct.Client.html)
     let client = reqwest::Client::new();
+    /// Send the request to the API
     let response = client.get(&url)
         .header("X-Api-Key", API_CONFIG.api_key.clone())
         .send()
         .await
         .expect("Failed to send request");
 
-
+    /// Check if the response status is 200
+    ///
+    /// If not, return the error code
     if response.status() != 200 {
         return Err(response.status());
     }
 
-    // Check if body is empty
+    /// Check if the response is empty
+    ///
+    /// If so, return an empty vector
     let body = match response.text().await {
         Ok(body) => body,
         Err(e) => panic!("Error: {}", e),
     };
 
+    /// Deserialize the JSON response into a vector of NutritionInfo structs
+    ///
+    /// If there is an error, panic
     let nutrition_info: Vec<NutritionInfo> = match serde_json::from_str(&body) {
         Ok(nutrition_info) => nutrition_info,
         Err(e) => panic!("Error: {}", e),
     };
 
+    /// Return the vector of NutritionInfo structs
     Ok(nutrition_info)
 
 }
-
-
