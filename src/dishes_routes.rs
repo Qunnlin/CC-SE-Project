@@ -2,14 +2,14 @@ use super::models::{Dish, NewDish, ReqDish};
 use serde_json::{from_slice, json};
 use super::ninjas_api::get_nutrition_info;
 use super::db::establish_connection;
-use actix_web::{get, post, put, delete, HttpResponse, Responder, HttpRequest, FromRequest, web, error};
-use actix_web::web::Json;
+use actix_web::{get, post, delete, HttpResponse, Responder, HttpRequest, web};
+
 use actix_web::web::Payload;
-use actix_web::guard::Delete;
+
 use diesel;
 use diesel::prelude::*;
-use diesel::{Connection, insert_into, PgConnection, QueryDsl, RunQueryDsl};
-use diesel::result::Error;
+use diesel::{insert_into, QueryDsl, RunQueryDsl};
+
 use futures::StreamExt;
 use crate::schema::dishes::dsl::dishes;
 use crate::schema::dishes::{dish_id, name};

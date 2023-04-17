@@ -1,8 +1,8 @@
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
+
 use dotenv::dotenv;
 use std::env;
-use diesel::{Connection, QueryResult};
+use diesel::{Connection};
 
 ///
 /// Establishes a connection to the database
