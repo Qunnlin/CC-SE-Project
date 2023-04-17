@@ -1,9 +1,10 @@
 use actix_web::{guard, App, HttpServer, web};
-use routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
+use dishes_routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
 
 mod models;
 mod ninjas_api;
-mod routes;
+mod db;
+mod dishes_routes;
 mod schema;
 
 

@@ -1,7 +1,7 @@
-use std::env;
 use super::models::{Dish, NewDish, ReqDish};
 use serde_json::{from_slice, json};
 use super::ninjas_api::get_nutrition_info;
+use super::db::establish_connection;
 use actix_web::{get, post, put, delete, HttpResponse, Responder, HttpRequest, FromRequest, web, error};
 use actix_web::web::Json;
 use actix_web::web::Payload;
@@ -10,24 +10,10 @@ use diesel;
 use diesel::prelude::*;
 use diesel::{Connection, insert_into, PgConnection, QueryDsl, RunQueryDsl};
 use diesel::result::Error;
-use dotenv::dotenv;
 use futures::StreamExt;
 use crate::schema::dishes::dsl::dishes;
 use crate::schema::dishes::{dish_id, name};
 
-///
-/// Establishes a connection to the database
-///
-/// Returns a [PgConnection]
-pub fn establish_connection() -> PgConnection {
-    /// Load the .env file
-    dotenv().ok();
-    /// Get the database URL from the environment
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    /// Establish a connection to the database
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
-}
 
 ///
 /// Creates the default route for the API in "/"
@@ -279,7 +265,7 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
 
     /// Check if the dish was found in the database
     /// If it was not, return a [HttpResponse::NotFound] with a JSON body containing an error message and the error code -5
-    let dish = match dish {
+    match dish {
         Ok(dish) => dish,
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -296,7 +282,7 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
     /// Check if the dish was deleted from the database
     ///
     /// If it was not, return a [HttpResponse::InternalServerError] with a JSON body containing an error message and the error code -8
-    let delete_dish = match delete_dish {
+    match delete_dish {
         Ok(delete_dish) => delete_dish,
         Err(e) => {
             eprintln!("Error: {}", e);

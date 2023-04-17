@@ -10,3 +10,21 @@ diesel::table! {
         serving_size -> Float8,
     }
 }
+
+diesel::table! {
+    meals (meal_id) {
+        meal_id -> Int4,
+        name -> Varchar,
+        appetizer -> Nullable<Int4>,
+        entree -> Nullable<Int4>,
+        dessert -> Nullable<Int4>,
+        cal -> Nullable<Float8>,
+        sodium -> Nullable<Float8>,
+        sugar -> Nullable<Float8>,
+    }
+}
+
+diesel::allow_tables_to_appear_in_same_query!(
+    dishes,
+    meals,
+);
