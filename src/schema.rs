@@ -16,7 +16,7 @@ diesel::table! {
         meal_id -> Int4,
         name -> Varchar,
         appetizer -> Nullable<Int4>,
-        entree -> Nullable<Int4>,
+        main -> Nullable<Int4>,
         dessert -> Nullable<Int4>,
         cal -> Nullable<Float8>,
         sodium -> Nullable<Float8>,

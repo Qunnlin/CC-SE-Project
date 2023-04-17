@@ -87,6 +87,7 @@ pub async fn create_meal(req: HttpRequest, mut payload: Payload) -> impl Respond
         Ok(body) => body,
         Err(e) => {
             /// If it was not, return a [HttpResponse::UnsupportedMediaType] with a Error Code -1
+            println!("{:?}", e);
             return HttpResponse::BadRequest().json(json!({
                 "message": "One or more required fields are missing or invalid",
                 "id": "-1"

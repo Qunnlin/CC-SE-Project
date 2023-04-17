@@ -10,7 +10,7 @@ create table meals (
     meal_id serial PRIMARY KEY,
     name VARCHAR ( 50 ) UNIQUE NOT NULL,
     appetizer INTEGER REFERENCES dishes ( dish_id ),
-    entree INTEGER REFERENCES dishes ( dish_id ),
+    main INTEGER REFERENCES dishes ( dish_id ),
     dessert INTEGER REFERENCES dishes ( dish_id ),
     cal FLOAT,
     sodium FLOAT,
@@ -20,13 +20,13 @@ create table meals (
 CREATE OR REPLACE FUNCTION update_meal_nutrition() RETURNS TRIGGER AS $$
 BEGIN
     NEW.cal := COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.entree), 0)
+        + COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.main), 0)
         + COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.dessert), 0);
     NEW.sodium := COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.entree), 0)
+        + COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.main), 0)
         + COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.dessert), 0);
     NEW.sugar := COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.entree), 0)
+        + COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.main), 0)
         + COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.dessert), 0);
     RETURN NEW;
 END;

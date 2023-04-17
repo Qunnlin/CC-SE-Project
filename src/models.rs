@@ -49,7 +49,7 @@ pub struct Meal {
     pub meal_id: i32,
     pub name: String,
     pub appetizer: Option<i32>,
-    pub entree: Option<i32>,
+    pub main: Option<i32>,
     pub dessert: Option<i32>,
     pub cal: Option<f64>,
     pub sodium: Option<f64>,
@@ -62,6 +62,7 @@ pub struct Meal {
 pub struct NewMeal {
     pub name: String,
     pub appetizer: Option<i32>,
-    pub entree: Option<i32>,
+    pub main: Option<i32>,
     pub dessert: Option<i32>,
 }
+
