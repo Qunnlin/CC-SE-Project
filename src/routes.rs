@@ -233,7 +233,7 @@ pub async fn collection_deletion() -> impl Responder {
 /// * `id` - The name of the dish to be retrieved
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
-#[get("/dishes/{id}")]
+#[get("/dishes/{id:\\d+}")]
 pub async fn get_dish(id: web::Path<i32>) -> impl Responder {
 
     /// Get a connection to the database
@@ -269,7 +269,7 @@ pub async fn get_dish(id: web::Path<i32>) -> impl Responder {
 /// * `id` - The name of the dish to be deleted
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
-#[delete("/dishes/{id}")]
+#[delete("/dishes/{id:\\d+}")]
 pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
     /// Get a connection to the database
     let conn = &mut establish_connection();
@@ -325,7 +325,7 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
 /// * `dish_name` - The name of the dish to be retrieved
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
-#[get("/dishes/{name}")]
+#[get("/dishes/{name:.*}")]
 pub async fn get_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
 
     /// Get a connection to the database
@@ -361,7 +361,7 @@ pub async fn get_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
 /// * `dish_name` - The name of the dish to be deleted
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
-#[delete("/dishes/{name}")]
+#[delete("/dishes/{name:.*}")]
 pub async fn delete_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
 
     /// Get a connection to the database

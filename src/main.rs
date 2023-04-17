@@ -20,24 +20,10 @@ async fn main() -> std::io::Result<()> {
             .service(get_all_dishes)
             .service(create_dish)
             .service(collection_deletion)
-            .service(
-                web::resource("/dishes/{id}")
-                    .guard(guard::fn_guard(|req| {
-                        let id = req.match_info().get("id").unwrap_or("");
-                        id.parse::<i32>().is_ok()
-                    }))
-                    .route(web::get().to(get_dish))
-                    .route(web::delete().to(delete_dish))
-            )
-            .service(
-                web::resource("/dishes/{name}")
-                    .guard(guard::fn_guard(|req| {
-                        let name = req.match_info().get("name").unwrap_or("");
-                        !name.is_empty()
-                    }))
-                    .route(web::get().to(get_dish_by_name))
-                    .route(web::delete().to(delete_dish_by_name))
-            )
+            .service(get_dish)
+            .service(get_dish_by_name)
+            .service(delete_dish)
+            .service(delete_dish_by_name)
     })
         .bind(("127.0.0.1", 8080))?
         .run()
