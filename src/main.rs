@@ -1,11 +1,12 @@
 use actix_web::{App, HttpServer};
 use dishes_routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
-
+use meals_routes::{get_all_meals, create_meal};
 mod models;
 mod ninjas_api;
 mod db;
 mod dishes_routes;
 mod schema;
+mod meals_routes;
 
 
 /// Main function
@@ -25,6 +26,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_dish_by_name)
             .service(delete_dish)
             .service(delete_dish_by_name)
+            .service(get_all_meals)
+            .service(create_meal)
     })
         .bind(("127.0.0.1", 8080))?
         .run()

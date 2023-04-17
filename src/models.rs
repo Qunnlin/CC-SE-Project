@@ -64,13 +64,4 @@ pub struct NewMeal {
     pub appetizer: Option<i32>,
     pub entree: Option<i32>,
     pub dessert: Option<i32>,
-    pub cal: Option<f64>,
-    pub sodium: Option<f64>,
-    pub sugar: Option<f64>,
-}
-
-/// Struct that represents a meal reqested by the user, either for creation or deletion
-#[derive(Deserialize)]
-pub struct ReqMeal {
-    pub name: String
 }
