@@ -11,6 +11,7 @@ use diesel::prelude::*;
 use diesel::{insert_into, QueryDsl, RunQueryDsl};
 
 use futures::StreamExt;
+use crate::ninjas_api::NutritionInfo;
 use crate::schema::dishes::dsl::dishes;
 use crate::schema::dishes::{dish_id, name};
 
@@ -121,7 +122,24 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
             if nut_info.is_empty() {
                 return HttpResponse::UnprocessableEntity().body(DISH_NOT_RECOGNIZED)
             } else {
-                nut_info[0].clone()
+                // Sum up the calories, sodium and serving size of all the dishes in the Vector
+                nut_info.iter().fold(NutritionInfo::default(), |acc, x| {
+                    NutritionInfo {
+                        name: body.name.clone(),
+                        calories: acc.calories + x.calories,
+                        sodium_mg: acc.sodium_mg + x.sodium_mg,
+                        potassium_mg: acc.potassium_mg + x.potassium_mg,
+                        cholesterol_mg: acc.cholesterol_mg + x.cholesterol_mg,
+                        carbohydrates_total_g: acc.carbohydrates_total_g + x.carbohydrates_total_g,
+                        fiber_g: acc.fiber_g + x.fiber_g,
+                        sugar_g: acc.sugar_g + x.sugar_g,
+                        serving_size_g: acc.serving_size_g + x.serving_size_g,
+                        fat_total_g: acc.fat_total_g + x.fat_total_g,
+                        fat_saturated_g: acc.fat_saturated_g + x.fat_saturated_g,
+                        protein_g: acc.protein_g + x.protein_g,
+                    }
+                })
+
             }
         },
         Err(e) => {

@@ -32,8 +32,6 @@ pub struct NewDish {
 #[derive(Deserialize)]
 pub struct ReqDish {
     pub name: String,
-    #[serde(default = "default_serving_size")]
-    pub serving_size: f64
 }
 
 

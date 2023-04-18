@@ -4,6 +4,7 @@ use actix_web::http::StatusCode;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use crate::schema::dishes::serving_size;
 
 
 /// Struct to hold the API configuration
@@ -51,6 +52,26 @@ impl Clone for NutritionInfo {
     }
 }
 
+/// Implement the Default trait for NutritionInfo
+impl Default for NutritionInfo {
+    fn default() -> Self {
+        NutritionInfo {
+            name: String::new(),
+            calories: 0.0,
+            serving_size_g: 0.0,
+            fat_total_g: 0.0,
+            fat_saturated_g: 0.0,
+            protein_g: 0.0,
+            sodium_mg: 0.0,
+            potassium_mg: 0.0,
+            cholesterol_mg: 0.0,
+            carbohydrates_total_g: 0.0,
+            fiber_g: 0.0,
+            sugar_g: 0.0,
+        }
+    }
+}
+
 /// Create a static instance of the API configuration ard populate it from the .env file
 lazy_static! {
     static ref API_CONFIG: APIConfig = {
@@ -67,6 +88,7 @@ lazy_static! {
 /// Function to get the nutrition information for a dish from the Ninjas API
 /// ## Arguments
 /// * `dish_name` - The name of the dish to get the nutrition information for
+/// * `serving_size` - The serving size of the dish
 /// ## Returns
 /// * `Result<Vec<NutritionInfo>, StatusCode>` - A vector of NutritionInfo structs or an error code
 pub async fn get_nutrition_info(dish_name: &str) -> Result<Vec<NutritionInfo>, StatusCode>{
