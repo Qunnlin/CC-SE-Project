@@ -4,17 +4,12 @@ use super::models::{Meal, NewMeal};
 use super::db::establish_connection;
 
 use actix_web::{get, post, delete, put, HttpResponse, Responder, HttpRequest, web};
-use actix_web::web::Payload;
 
 use diesel;
 use diesel::prelude::*;
 use diesel::{delete, insert_into, QueryDsl, RunQueryDsl};
-use futures::StreamExt;
 
-use serde::{Serialize, Deserialize};
-use serde_json::{from_slice, json};
-use crate::models::Dish;
-use crate::schema::dishes::dsl::dishes;
+use serde_json::{json};
 
 
 /// Error codes as defined in the Assigment
@@ -89,10 +84,12 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     /// If it does, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
     let meal_exists = meals.filter(name.eq(&*new_meal.name)).select(name).first::<String>(conn);
     match meal_exists {
-        Ok(meal_exists) => {
+        Ok(e) => {
+            eprintln!("Meal already exists: {}", e);
             return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
         }
         Err(e) => {
+            eprintln!("Error: {}", e);
             // Continue
         }
     };
@@ -105,6 +102,7 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     let new_meal = match new_meal {
         Ok(new_meal) => new_meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::UnprocessableEntity().body(DISH_ID_NOT_FOUND)
         }
     };
@@ -152,6 +150,7 @@ pub async fn get_meal(id: web::Path<i32>) -> impl Responder {
     let meal = match meal {
         Ok(meal) => meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
@@ -183,6 +182,7 @@ pub async fn get_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
     let meal = match meal {
         Ok(meal) => meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
@@ -209,10 +209,9 @@ pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
     let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
     match meal_exists {
-        Ok(meal_exists) => {
-            // Continue
-        }
+        Ok(meal_exists) => meal_exists,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
@@ -223,9 +222,10 @@ pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
     /// Check if the meal exists
     ///
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
-    let meal = match meal {
+    match meal {
         Ok(meal) => meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting meal",
             }))
@@ -258,6 +258,7 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
     let deleted_id = match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
@@ -267,9 +268,10 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
 
     /// Check if deletion was successful
     /// If it was not, return a [HttpResponse::InternalServerError] with a Error Code -8
-    let meal = match meal {
+    match meal {
         Ok(meal) => meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting meal",
             }))
@@ -320,13 +322,12 @@ pub async fn update_meal(req: HttpRequest, id: web::Path<i32>, new_meal: web::Js
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
     let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
     match meal_exists {
-        Ok(meal_exists) => {
-            // Continue
-        }
+        Ok(meal_exists) => meal_exists,
         Err(e) => {
 
             // Can use this to create a new meal, but not required in assignment
 
+            eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
@@ -345,9 +346,10 @@ pub async fn update_meal(req: HttpRequest, id: web::Path<i32>, new_meal: web::Js
     /// Check if the meal exists
     ///
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
-    let meal = match meal {
+    match meal {
         Ok(meal) => meal,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error updating meal",
             }))

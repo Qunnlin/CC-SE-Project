@@ -151,6 +151,7 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
     match new_dish {
         Ok(new_dish) => new_dish,
         Err(e) => {
+            eprintln!("Error: {}", e);
             return HttpResponse::UnprocessableEntity().body(DISH_ALREADY_EXISTS)
         }
     };

@@ -1,5 +1,4 @@
 use actix_web::{App, HttpServer};
-use actix_web::web::route;
 use dishes_routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
 use meals_routes::{meals_collection_deletion, get_all_meals, create_meal, get_meal, get_meal_by_name, delete_meal, delete_meal_by_name, update_meal};
 mod models;
