@@ -1,6 +1,7 @@
 use actix_web::{App, HttpServer};
+use actix_web::web::route;
 use dishes_routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
-use meals_routes::{get_all_meals, create_meal};
+use meals_routes::{meals_collection_deletion, get_all_meals, create_meal, get_meal, get_meal_by_name, delete_meal, delete_meal_by_name};
 mod models;
 mod ninjas_api;
 mod db;
@@ -19,15 +20,20 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(index)
+            .service(collection_deletion)
+            .service(meals_collection_deletion)
             .service(get_all_dishes)
             .service(create_dish)
-            .service(collection_deletion)
             .service(get_dish)
             .service(get_dish_by_name)
             .service(delete_dish)
             .service(delete_dish_by_name)
             .service(get_all_meals)
             .service(create_meal)
+            .service(get_meal)
+            .service(get_meal_by_name)
+            .service(delete_meal)
+            .service(delete_meal_by_name)
     })
         .bind(("127.0.0.1", 8080))?
         .run()

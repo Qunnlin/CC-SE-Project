@@ -7,7 +7,7 @@ use actix_web::web::Payload;
 
 use diesel;
 use diesel::prelude::*;
-use diesel::{insert_into, QueryDsl, RunQueryDsl};
+use diesel::{delete, insert_into, QueryDsl, RunQueryDsl};
 use futures::StreamExt;
 
 use serde::{Serialize, Deserialize};
@@ -15,6 +15,17 @@ use serde_json::{from_slice, json};
 use crate::models::Dish;
 use crate::schema::dishes::dsl::dishes;
 
+
+/// Disallow DELETE requests to the /meals route
+/// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
+#[delete("/meals")]
+pub async fn meals_collection_deletion() -> impl Responder {
+    /// Return a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
+    HttpResponse::MethodNotAllowed().json(json!({
+        "message": "Method not allowed",
+        "id": "-7"
+    }))
+}
 
 /*
 =============================== GET /meals ===============================
@@ -99,7 +110,7 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
         Ok(new_meal) => new_meal,
         Err(e) => {
             return HttpResponse::UnprocessableEntity().json(json!({
-                "message": "One or more required fields are missing or invalid",
+                "message": "One ore more dishes do not exist",
                 "id": "-6"
             }))
         }
@@ -128,4 +139,176 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
         "id": new_meal_id,
     }))
 
+}
+
+/*
+=============================== GET /meals/{id} ===============================
+ */
+
+/// Creates the route for getting a meal by ID in "/meals/{id}"
+/// # Arguments
+/// * `id` - The ID of the meal to get
+/// # Returns
+/// Returns a [HttpResponse::Ok] with a JSON body containing the meal
+#[get("/meals/{id:\\d+}")]
+pub async fn get_meal(id: web::Path<i32>) -> impl Responder {
+
+    /// Create a connection to the database
+    let conn = &mut establish_connection();
+
+    /// Get the meal with the specified ID
+    let meal = meals.find(&*id).first::<Meal>(conn);
+
+    /// Check if the meal exists
+    ///
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
+    let meal = match meal {
+        Ok(meal) => meal,
+        Err(e) => {
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
+                "id": "-5"
+            }))
+        }
+    };
+
+    /// Return a [HttpResponse::Ok] with a JSON body containing the meal
+    HttpResponse::Ok().json(meal)
+}
+
+/*
+=============================== GET /meals/{name} ===============================
+ */
+/// Creates the route for getting a meal by name in "/meals/{name}"
+/// # Arguments
+/// * `meal_name` - The name of the meal to get
+/// # Returns
+/// Returns a [HttpResponse::Ok] with a JSON body containing the meal
+#[get("/meals/{name:.*}")]
+pub async fn get_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
+
+    /// Create a connection to the database
+    let conn = &mut establish_connection();
+
+    /// Get the meal with the specified name
+    let meal = meals.filter(name.eq(&*meal_name)).first::<Meal>(conn);
+
+    /// Check if the meal exists
+    ///
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
+    let meal = match meal {
+        Ok(meal) => meal,
+        Err(e) => {
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
+                "id": "-5"
+            }))
+        }
+    };
+
+    /// Return a [HttpResponse::Ok] with a JSON body containing the meal
+    HttpResponse::Ok().json(meal)
+}
+
+/*
+=============================== DELETE /meals/{id} ===============================
+ */
+/// Creates the route for deleting a meal by ID in "/meals/{id}"
+/// # Arguments
+/// * `id` - The ID of the meal to delete
+/// # Returns
+/// Returns a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+#[delete("/meals/{id:\\d+}")]
+pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
+
+    /// Create a connection to the database
+    let conn = &mut establish_connection();
+
+    /// Check if the meal exists
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
+    let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
+    match meal_exists {
+        Ok(meal_exists) => {
+            // Continue
+        }
+        Err(e) => {
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
+                "id": "-5"
+            }))
+        }
+    };
+
+    /// Delete the meal with the specified ID
+    let meal = delete(meals.find(&*id)).execute(conn);
+
+    /// Check if the meal exists
+    ///
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
+    let meal = match meal {
+        Ok(meal) => meal,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({
+                "message": "Error deleting meal",
+                "id": "-8"
+            }))
+        }
+    };
+
+    /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+    HttpResponse::Ok().json(json!({
+        "message": "Meal deleted successfully",
+        "id": *id
+    }))
+}
+
+/*
+=============================== DELETE /meals/{name} ===============================
+ */
+
+/// Creates the route for deleting a meal by name in "/meals/{name}"
+/// # Arguments
+/// * `meal_name` - The name of the meal to delete
+/// # Returns
+/// Returns a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+#[delete("/meals/{name:.*}")]
+pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
+
+    /// Create a connection to the database
+    let conn = &mut establish_connection();
+
+    /// Check if the meal exists
+    /// If it does, save the ID of the meal,
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
+    let meal_exists = meals.filter(name.eq(&*meal_name)).select(meal_id).first::<i32>(conn);
+    let deleted_id = match meal_exists {
+        Ok(meal_exists) => meal_exists,
+        Err(e) => {
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
+                "id": "-5"
+            }))
+        }
+    };
+
+    /// Delete the meal with the specified name
+    let meal = delete(meals.filter(name.eq(&*meal_name))).execute(conn);
+
+    /// Check if deletion was successful
+    /// If it was not, return a [HttpResponse::InternalServerError] with a Error Code -8
+    let meal = match meal {
+        Ok(meal) => meal,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({
+                "message": "Error deleting meal",
+                "id": "-8"
+            }))
+        }
+    };
+
+    /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+    HttpResponse::Ok().json(json!({
+        "message": "Meal deleted successfully",
+        "id": deleted_id
+    }))
 }

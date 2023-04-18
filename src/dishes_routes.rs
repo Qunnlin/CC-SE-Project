@@ -353,20 +353,18 @@ pub async fn delete_dish_by_name(dish_name: web::Path<String>) -> impl Responder
     /// Get a connection to the database
     let conn = &mut establish_connection();
 
-    /// Get the ID of the dish to be deleted
-    ///
-    /// TODO: This is a hacky way to get the ID of the dish to be deleted. Find a better way to do this
+    /// Check if the dish exists in the database and get its ID
     let id = dishes.filter(name.eq(&*dish_name)).select(dish_id).first::<i32>(conn);
 
     /// Check if the ID could be retrieved
     ///
-    /// If it was not, return a [HttpResponse::InternalServerError] with a JSON body containing an error message and the error code -5
+    /// If it was not, return a [HttpResponse::NotFound] with a JSON body containing an error message and the error code -5
     let id = match id {
         Ok(new_dish_id) => new_dish_id,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::InternalServerError().json(json!({
-                "message": "Error getting dish id",
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
                 "id": "-5"
             }))
         }
