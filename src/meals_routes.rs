@@ -2,7 +2,7 @@ use crate::schema::meals::dsl::*;
 use super::models::{Meal, NewMeal};
 use super::db::establish_connection;
 
-use actix_web::{get, post, delete, HttpResponse, Responder, HttpRequest, web};
+use actix_web::{get, post, delete, put, HttpResponse, Responder, HttpRequest, web};
 use actix_web::web::Payload;
 
 use diesel;
@@ -310,5 +310,69 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
     HttpResponse::Ok().json(json!({
         "message": "Meal deleted successfully",
         "id": deleted_id
+    }))
+}
+
+/*
+=============================== PUT /meals/{id} ===============================
+ */
+/// Creates the route for updating a meal by ID in "/meals/{id}"
+/// # Arguments
+/// * `id` - The ID of the meal to update
+/// * `new_meal` - The new meal to update the old one with
+/// # Returns
+/// Returns a [HttpResponse::Ok] on success
+#[put("/meals/{id:\\d+}")]
+pub async fn update_meal(id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+
+    /// Create a connection to the database
+    let conn = &mut establish_connection();
+
+    /// Check if the meal exists
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
+    let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
+    match meal_exists {
+        Ok(meal_exists) => {
+            // Continue
+        }
+        Err(e) => {
+
+            // Can use this to create a new meal, but not required in assignment
+
+            return HttpResponse::NotFound().json(json!({
+                "message": "Meal not found",
+                "id": "-5"
+            }))
+        }
+    };
+
+    /// Update the meal with the specified ID
+    let meal = diesel::update(meals.find(&*id))
+        .set((
+            name.eq(&new_meal.name),
+            appetizer.eq(&new_meal.appetizer),
+            main.eq(&new_meal.main),
+            dessert.eq(&new_meal.dessert),
+
+        ))
+        .execute(conn);
+
+    /// Check if the meal exists
+    ///
+    /// If it does not, return a [HttpResponse::NotFound] with a Error Code -3
+    let meal = match meal {
+        Ok(meal) => meal,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({
+                "message": "Error updating meal",
+                "id": "-8"
+            }))
+        }
+    };
+
+    /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the updated meal
+    HttpResponse::Ok().json(json!({
+        "message": "Meal updated successfully",
+        "id": *id
     }))
 }
