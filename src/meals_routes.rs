@@ -1,3 +1,4 @@
+use std::string::ToString;
 use crate::schema::meals::dsl::*;
 use super::models::{Meal, NewMeal};
 use super::db::establish_connection;
@@ -16,6 +17,14 @@ use crate::models::Dish;
 use crate::schema::dishes::dsl::dishes;
 
 
+/// Error codes as defined in the Assigment
+const NOT_JSON: &str = "0";
+const PARAM_NOT_FOUND: &str = "-1";
+const MEAL_ALREADY_EXISTS: &str = "-2";
+const MEAL_NOT_FOUND: &str = "-5";
+const DISH_ID_NOT_FOUND: &str = "-6";
+
+
 /// Disallow DELETE requests to the /meals route
 /// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
 #[delete("/meals")]
@@ -23,7 +32,6 @@ pub async fn meals_collection_deletion() -> impl Responder {
     /// Return a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
     HttpResponse::MethodNotAllowed().json(json!({
         "message": "Method not allowed",
-        "id": "-7"
     }))
 }
 
@@ -60,27 +68,18 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     match req.headers().get("Content-Type") {
         Some(content_type) => {
             if content_type != "application/json" {
-                return HttpResponse::UnsupportedMediaType().json(json!({
-                    "message": "Content-Type must be application/json",
-                    "id": "0"
-                }))
+                return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
             }
         },
         None => {
-            return HttpResponse::UnsupportedMediaType().json(json!({
-                "message": "Content-Type must be application/json",
-                "id": "0"
-            }))
+            return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
         }
     }
 
     /// Check if new_meal is has all the required fields
     /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
     if new_meal.name.is_empty() || new_meal.appetizer.is_none() || new_meal.main.is_none() || new_meal.dessert.is_none() {
-        return HttpResponse::UnprocessableEntity().json(json!({
-            "message": "One or more required fields are missing or invalid",
-            "id": "-1"
-        }))
+        return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
     }
 
     /// Create a connection to the database
@@ -91,10 +90,7 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     let meal_exists = meals.filter(name.eq(&*new_meal.name)).select(name).first::<String>(conn);
     match meal_exists {
         Ok(meal_exists) => {
-            return HttpResponse::UnprocessableEntity().json(json!({
-                "message": "Meal with the same name already exists",
-                "id": "-2"
-            }))
+            return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
         }
         Err(e) => {
             // Continue
@@ -109,10 +105,7 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     let new_meal = match new_meal {
         Ok(new_meal) => new_meal,
         Err(e) => {
-            return HttpResponse::UnprocessableEntity().json(json!({
-                "message": "One ore more dishes do not exist",
-                "id": "-6"
-            }))
+            return HttpResponse::UnprocessableEntity().body(DISH_ID_NOT_FOUND)
         }
     };
 
@@ -126,18 +119,12 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
         Ok(new_meal_id) => new_meal_id,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::InternalServerError().json(json!({
-                "message": "Error getting meal ID",
-                "id": "-5"
-            }))
+            return HttpResponse::InternalServerError().body(MEAL_NOT_FOUND)
         }
     };
 
     /// Return a [HttpResponse::Created] with a JSON body containing the ID of the new dish
-    HttpResponse::Created().json(json!({
-        "message": "Meal created successfully",
-        "id": new_meal_id,
-    }))
+    HttpResponse::Created().body(new_meal_id.to_string())
 
 }
 
@@ -165,10 +152,7 @@ pub async fn get_meal(id: web::Path<i32>) -> impl Responder {
     let meal = match meal {
         Ok(meal) => meal,
         Err(e) => {
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
 
@@ -199,10 +183,7 @@ pub async fn get_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
     let meal = match meal {
         Ok(meal) => meal,
         Err(e) => {
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
 
@@ -232,10 +213,7 @@ pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
             // Continue
         }
         Err(e) => {
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
 
@@ -250,16 +228,12 @@ pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
         Err(e) => {
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting meal",
-                "id": "-8"
             }))
         }
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
-    HttpResponse::Ok().json(json!({
-        "message": "Meal deleted successfully",
-        "id": *id
-    }))
+    HttpResponse::Ok().body(id.to_string())
 }
 
 /*
@@ -284,10 +258,7 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
     let deleted_id = match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
 
@@ -301,16 +272,12 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
         Err(e) => {
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting meal",
-                "id": "-8"
             }))
         }
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
-    HttpResponse::Ok().json(json!({
-        "message": "Meal deleted successfully",
-        "id": deleted_id
-    }))
+    HttpResponse::Ok().body(deleted_id.to_string())
 }
 
 /*
@@ -318,12 +285,33 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
  */
 /// Creates the route for updating a meal by ID in "/meals/{id}"
 /// # Arguments
+/// * `req` - The [HttpRequest] object
 /// * `id` - The ID of the meal to update
 /// * `new_meal` - The new meal to update the old one with
 /// # Returns
 /// Returns a [HttpResponse::Ok] on success
 #[put("/meals/{id:\\d+}")]
-pub async fn update_meal(id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn update_meal(req: HttpRequest, id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+
+    /// Check if the Content-Type is application/json
+    ///
+    /// If it is not, return a [HttpResponse::UnsupportedMediaType] with a Error Code 0
+    match req.headers().get("Content-Type") {
+        Some(content_type) => {
+            if content_type != "application/json" {
+                return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
+            }
+        },
+        None => {
+            return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
+        }
+    }
+
+    /// Check if new_meal is has all the required fields
+    /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
+    if new_meal.name.is_empty() || new_meal.appetizer.is_none() || new_meal.main.is_none() || new_meal.dessert.is_none() {
+        return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
+    }
 
     /// Create a connection to the database
     let conn = &mut establish_connection();
@@ -339,10 +327,7 @@ pub async fn update_meal(id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> im
 
             // Can use this to create a new meal, but not required in assignment
 
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }
     };
 
@@ -365,14 +350,10 @@ pub async fn update_meal(id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> im
         Err(e) => {
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error updating meal",
-                "id": "-8"
             }))
         }
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the updated meal
-    HttpResponse::Ok().json(json!({
-        "message": "Meal updated successfully",
-        "id": *id
-    }))
+    HttpResponse::Ok().body(id.to_string())
 }

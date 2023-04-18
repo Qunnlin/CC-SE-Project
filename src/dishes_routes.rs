@@ -14,6 +14,13 @@ use futures::StreamExt;
 use crate::schema::dishes::dsl::dishes;
 use crate::schema::dishes::{dish_id, name};
 
+/// Error codes as defined in the Assignment
+const NOT_JSON: &str = "0";
+const PARAM_NOT_FOUND: &str = "-1";
+const DISH_ALREADY_EXISTS: &str = "-2";
+const DISH_NOT_RECOGNIZED: &str = "-3";
+const NINJAS_UNAVAILABLE: &str = "-4";
+const DISH_NOT_FOUND: &str = "-5";
 
 ///
 /// Creates the default route for the API in "/"
@@ -23,7 +30,7 @@ use crate::schema::dishes::{dish_id, name};
 pub async fn index() -> impl Responder {
     /// Return a JSON response with a message
     HttpResponse::Ok().json(json!({
-        "message": "Welcome to the Dish API"
+        "message": "Welcome to the MEALS API"
     }))
 }
 
@@ -68,23 +75,17 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
     match request.headers().get("Content-Type") {
         Some(content_type) => {
             if content_type != "application/json" {
-                return HttpResponse::UnsupportedMediaType().json(json!({
-                    "message": "Content-Type must be application/json",
-                    "id": "0"
-                }))
+                return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
             }
         },
         None => {
-            return HttpResponse::UnsupportedMediaType().json(json!({
-                "message": "Content-Type must be application/json",
-                "id": "0"
-            }))
+            return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
         }
     }
 
     /// Read the body of the request
     ///
-    /// If the body is too large, return a [HttpResponse::PayloadTooLarge] with a Error Code -6
+    /// If the body is too large, return a [HttpResponse::PayloadTooLarge]
     let mut body = web::BytesMut::new();
     while let Some(chunk) = payload.next().await {
         let chunk = chunk.unwrap();
@@ -92,7 +93,6 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
         if (body.len() + chunk.len()) > 262_144 {
             return HttpResponse::PayloadTooLarge().json(json!({
                 "message": "Payload too large",
-                "id": "-6"
             }))
         }
         body.extend_from_slice(&chunk);
@@ -107,10 +107,7 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
         Ok(body) => body,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::UnsupportedMediaType().json(json!({
-                "message": "Name is required",
-                "id": "-1"
-            }))
+            return HttpResponse::UnsupportedMediaType().body(PARAM_NOT_FOUND)
         }
     };
 
@@ -122,21 +119,14 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
     let nut_info = match nut_info {
         Ok(nut_info) => {
             if nut_info.is_empty() {
-                return HttpResponse::UnprocessableEntity().json(json!({
-                    "message": "Dish not found in Ninjas API",
-                    "id": "-3"
-                }))
+                return HttpResponse::UnprocessableEntity().body(DISH_NOT_RECOGNIZED)
             } else {
                 nut_info[0].clone()
             }
         },
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::GatewayTimeout().json(json!({
-                "message": "Ninjas API not responding",
-                "id": "-4"
-
-            }))
+            return HttpResponse::GatewayTimeout().body(NINJAS_UNAVAILABLE)
         }
     };
 
@@ -161,18 +151,13 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
     match new_dish {
         Ok(new_dish) => new_dish,
         Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::UnprocessableEntity().json(json!({
-                "message": "Dish already exists",
-                "id": "-2"
-            }))
-
+            return HttpResponse::UnprocessableEntity().body(DISH_ALREADY_EXISTS)
         }
     };
 
     /// Get the ID of the newly inserted dish
     ///
-    /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code -5
+    /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code
     /// TODO: Find a better way to get the ID of the newly inserted dish
     let new_dish_id = dishes.filter(name.eq(&*body.name)).select(dish_id).first::<i32>(conn);
     let new_dish_id = match new_dish_id {
@@ -181,16 +166,12 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
             eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error getting dish id",
-                "id": "-5"
             }))
         }
     };
 
     /// Return a [HttpResponse::Created] with a JSON body containing the ID of the new dish
-    HttpResponse::Created().json(json!({
-        "message": "Dish created successfully",
-        "id": new_dish_id,
-    }))
+    HttpResponse::Created().body(new_dish_id.to_string())
 }
 
 /*
@@ -204,10 +185,7 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
 pub async fn collection_deletion() -> impl Responder {
 
     /// Return a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
-    HttpResponse::MethodNotAllowed().json(json!({
-        "message": "Method not allowed",
-        "id": "-7"
-    }))
+    HttpResponse::MethodNotAllowed()
 }
 
 /*
@@ -235,10 +213,7 @@ pub async fn get_dish(id: web::Path<i32>) -> impl Responder {
         Ok(dish) => dish,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().json(json!({
-                "message": "Dish not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(DISH_NOT_FOUND)
         }
     };
 
@@ -269,10 +244,7 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
         Ok(dish) => dish,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().json(json!({
-                "message": "Dish not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(DISH_NOT_FOUND)
         }
     };
 
@@ -288,18 +260,12 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
             eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting dish",
-                "id": "-8"
             }))
         }
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing a success message and the id of the deleted dish
-    HttpResponse::Ok().json(json!(
-        {
-            "message": "Dish deleted successfully",
-            "id": id.into_inner(),
-        }
-    ))
+    HttpResponse::Ok().body(id.into_inner().to_string())
 }
 
 /*
@@ -327,10 +293,7 @@ pub async fn get_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
         Ok(dish) => dish,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().json(json!({
-                "message": "Dish not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(DISH_NOT_FOUND)
         }
     };
 
@@ -363,10 +326,7 @@ pub async fn delete_dish_by_name(dish_name: web::Path<String>) -> impl Responder
         Ok(new_dish_id) => new_dish_id,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().json(json!({
-                "message": "Meal not found",
-                "id": "-5"
-            }))
+            return HttpResponse::NotFound().body(DISH_NOT_FOUND)
         }
     };
 
@@ -382,18 +342,12 @@ pub async fn delete_dish_by_name(dish_name: web::Path<String>) -> impl Responder
             eprintln!("Error: {}", e);
             return HttpResponse::InternalServerError().json(json!({
                 "message": "Error deleting dish",
-                "id": "-8"
             }))
         }
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing a success message and the id of the deleted dish
-    HttpResponse::Ok().json(json!(
-        {
-            "message": "Dish deleted successfully",
-            "id": id,
-        }
-    ))
+    HttpResponse::Ok().body(id.to_string())
 }
 
 
