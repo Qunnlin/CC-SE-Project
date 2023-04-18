@@ -41,7 +41,7 @@ pub async fn get_all_meals() -> impl Responder {
 ///
 /// Returns a [HttpResponse] with a status of 201 and a JSON body containing the new meal
 #[post("/meals")]
-pub async fn create_meal(req: HttpRequest, mut payload: Payload) -> impl Responder {
+pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -63,45 +63,21 @@ pub async fn create_meal(req: HttpRequest, mut payload: Payload) -> impl Respond
         }
     }
 
-    /// Read the body of the request
-    ///
-    /// If the body is too large, return a [HttpResponse::PayloadTooLarge] with a Error Code -6
-    let mut body = web::BytesMut::new();
-    while let Some(chunk) = payload.next().await {
-        let chunk = chunk.unwrap();
-        // limit max size of in-memory payload
-        if (body.len() + chunk.len()) > 262_144 {
-            return HttpResponse::PayloadTooLarge().json(json!({
-                "message": "Payload too large",
-                "id": "-6"
-            }))
-        }
-        body.extend_from_slice(&chunk);
+    /// Check if new_meal is has all the required fields
+    /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
+    if new_meal.name.is_empty() || new_meal.appetizer.is_none() || new_meal.main.is_none() || new_meal.dessert.is_none() {
+        return HttpResponse::UnprocessableEntity().json(json!({
+            "message": "One or more required fields are missing or invalid",
+            "id": "-1"
+        }))
     }
-
-    /// Deserialize the body into a [NewMeal] struct
-    let body = from_slice::<NewMeal>(&body);
-
-    /// Check if the deserialization was successful
-    let body = match body {
-        Ok(body) => body,
-        Err(e) => {
-            /// If it was not, return a [HttpResponse::UnsupportedMediaType] with a Error Code -1
-            println!("{:?}", e);
-            return HttpResponse::BadRequest().json(json!({
-                "message": "One or more required fields are missing or invalid",
-                "id": "-1"
-            }))
-        }
-    };
 
     /// Create a connection to the database
     let conn = &mut establish_connection();
 
     ///Check if the meal with the same name already exists
-    ///
     /// If it does, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
-    let meal_exists = meals.filter(name.eq(&*body.name)).select(name).first::<String>(conn);
+    let meal_exists = meals.filter(name.eq(&*new_meal.name)).select(name).first::<String>(conn);
     match meal_exists {
         Ok(meal_exists) => {
             return HttpResponse::UnprocessableEntity().json(json!({
@@ -115,7 +91,7 @@ pub async fn create_meal(req: HttpRequest, mut payload: Payload) -> impl Respond
     };
 
     /// Insert [NewMeal] into the database
-    let new_meal = insert_into(meals).values(&body).get_result::<Meal>(conn);
+    let new_meal = insert_into(meals).values(&*new_meal).get_result::<Meal>(conn);
     /// Check if the insertion was successful
     ///
     /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -6

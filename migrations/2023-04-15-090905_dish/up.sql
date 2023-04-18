@@ -9,9 +9,9 @@ create table dishes (
 create table meals (
     meal_id serial PRIMARY KEY,
     name VARCHAR ( 50 ) UNIQUE NOT NULL,
-    appetizer INTEGER REFERENCES dishes ( dish_id ),
-    main INTEGER REFERENCES dishes ( dish_id ),
-    dessert INTEGER REFERENCES dishes ( dish_id ),
+    appetizer INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL,
+    main INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL ,
+    dessert INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL,
     cal FLOAT,
     sodium FLOAT,
     sugar FLOAT
