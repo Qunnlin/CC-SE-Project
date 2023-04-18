@@ -122,7 +122,7 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
             if nut_info.is_empty() {
                 return HttpResponse::UnprocessableEntity().body(DISH_NOT_RECOGNIZED)
             } else {
-                // Sum up the calories, sodium and serving size of all the dishes in the Vector
+                /// Sum the nutrition information for all the dishes
                 nut_info.iter().fold(NutritionInfo::default(), |acc, x| {
                     NutritionInfo {
                         name: body.name.clone(),
