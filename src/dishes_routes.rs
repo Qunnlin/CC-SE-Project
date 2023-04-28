@@ -1,3 +1,5 @@
+#![allow(unused_doc_comments)]
+
 use super::models::{Dish, NewDish, ReqDish};
 use serde_json::{from_slice, json};
 use super::ninjas_api::get_nutrition_info;

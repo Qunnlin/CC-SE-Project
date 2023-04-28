@@ -1,3 +1,5 @@
+#![allow(unused_doc_comments)]
+
 use std::string::ToString;
 use crate::schema::meals::dsl::*;
 use super::models::{Meal, NewMeal};

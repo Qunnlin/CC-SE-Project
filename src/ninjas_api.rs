@@ -1,10 +1,11 @@
+#![allow(unused_doc_comments)]
+
 use std::borrow::ToOwned;
 use std::env;
 use actix_web::http::StatusCode;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use crate::schema::dishes::serving_size;
 
 
 /// Struct to hold the API configuration

@@ -1,10 +1,13 @@
 version: '3'
 services:
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: dishes
+  meals_api:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    image: meals_api:v1
     ports:
-      - "5432:5432"
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@localhost/dishes
+      - NINJAS_API_KEY=eCbzyNo541wNa7YG7Bj8GQ==xTm6T6ICJamKS9B1
+      - NINJAS_API_BASE_URL=https://api.api-ninjas.com/v1/nutrition?query=

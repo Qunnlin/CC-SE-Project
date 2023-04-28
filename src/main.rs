@@ -1,3 +1,4 @@
+#![allow(unused_doc_comments)]
 use actix_web::{App, HttpServer};
 use dishes_routes::{get_all_dishes, index, create_dish, collection_deletion, get_dish, get_dish_by_name, delete_dish, delete_dish_by_name};
 use meals_routes::{meals_collection_deletion, get_all_meals, create_meal, get_meal, get_meal_by_name, delete_meal, delete_meal_by_name, update_meal};
@@ -35,7 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(delete_meal_by_name)
             .service(update_meal)
     })
-        .bind(("127.0.0.1", 8080))?
+        .bind(("127.0.0.1", 8000))?
         .run()
         .await
 

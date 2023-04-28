@@ -1,3 +1,5 @@
+#![allow(unused_doc_comments)]
+
 use crate::schema::dishes;
 use crate::schema::meals;
 use diesel::prelude::*;
@@ -34,11 +36,6 @@ pub struct ReqDish {
     pub name: String,
 }
 
-
-/// Function to return the default serving size => 100g
-fn default_serving_size() -> f64 {
-    100.0
-}
 
 
 /// Meal struct to represent a meal in the database

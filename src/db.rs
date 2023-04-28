@@ -1,3 +1,5 @@
+#![allow(unused_doc_comments)]
+
 use diesel::pg::PgConnection;
 
 use dotenv::dotenv;
