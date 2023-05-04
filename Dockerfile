@@ -4,7 +4,6 @@ WORKDIR /usr/src/app
 COPY src ./src
 COPY migrations ./migrations
 COPY Cargo.toml .
-COPY Cargo.lock .
 COPY diesel.toml .
 COPY install.sh .
 COPY .env .
