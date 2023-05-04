@@ -17,6 +17,7 @@ create table meals (
     sugar FLOAT
 );
 
+
 CREATE OR REPLACE FUNCTION update_meal_nutrition() RETURNS TRIGGER AS $$
 BEGIN
     NEW.cal := COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.appetizer), 0)

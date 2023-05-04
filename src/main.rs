@@ -36,7 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(delete_meal_by_name)
             .service(update_meal)
     })
-        .bind(("127.0.0.1", 8000))?
+        .bind(("0.0.0.0", 8000))?
         .run()
         .await
 
