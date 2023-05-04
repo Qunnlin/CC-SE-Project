@@ -1,7 +1,14 @@
 FROM rust:slim as app
 #
 WORKDIR /usr/src/app
-COPY . .
+COPY src ./src
+COPY migrations ./migrations
+COPY Cargo.toml .
+COPY Cargo.lock .
+COPY diesel.toml .
+COPY install.sh .
+COPY .env .
+
 
 # Dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsqlite3-dev \
     default-libmysqlclient-dev \
+    postgresql-client \
+    postgresql \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install diesel_cli --no-default-features --features postgres
