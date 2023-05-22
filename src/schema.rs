@@ -1,6 +1,16 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    diets (id) {
+        id -> Int4,
+        name -> Varchar,
+        cal -> Int4,
+        sodium -> Int4,
+        sugar -> Int4,
+    }
+}
+
+diesel::table! {
     dishes (dish_id) {
         dish_id -> Int4,
         name -> Varchar,
@@ -25,6 +35,7 @@ diesel::table! {
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
+    diets,
     dishes,
     meals,
 );

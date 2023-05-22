@@ -1,18 +1,25 @@
 #![allow(unused_doc_comments)]
 
-use std::string::ToString;
-use crate::schema::meals::dsl::*;
-use super::models::{Meal, NewMeal};
-use super::db::establish_connection;
-
+/// Actix Imports
 use actix_web::{get, post, delete, put, HttpResponse, Responder, HttpRequest, web};
+use actix_web::web::Data;
 
+/// Diesel Imports
 use diesel;
 use diesel::prelude::*;
 use diesel::{delete, insert_into, QueryDsl, RunQueryDsl};
+use diesel::r2d2::{ConnectionManager, PooledConnection};
 
+/// Misc Imports
+use std::string::ToString;
 use serde_json::{json};
 
+/// Module Imports
+use super::models::{Meal, NewMeal};
+
+/// Crate Imports
+use crate::schema::meals::dsl::*;
+use crate::db::DbPool;
 
 /// Error codes as defined in the Assigment
 const NOT_JSON: &str = "0";
@@ -20,7 +27,6 @@ const PARAM_NOT_FOUND: &str = "-1";
 const MEAL_ALREADY_EXISTS: &str = "-2";
 const MEAL_NOT_FOUND: &str = "-5";
 const DISH_ID_NOT_FOUND: &str = "-6";
-
 
 /// Disallow DELETE requests to the /meals route
 /// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
@@ -35,13 +41,15 @@ pub async fn meals_collection_deletion() -> impl Responder {
 /*
 =============================== GET /meals ===============================
  */
-/// Creates the route for getting all meals in "/meals"
-///
-/// Returns a  [HttpResponse] with a status of 200 and a JSON body containing all meals
+/// # Creates the route for getting all meals in "/meals"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// ## Returns
+/// * [HttpResponse] with a status of 200 and a JSON body containing all meals
 #[get("/meals")]
-pub async fn get_all_meals() -> impl Responder {
+pub async fn get_all_meals(db_pool: Data<DbPool>) -> impl Responder {
     /// Establish a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Get all meals from the database
     let results = meals.load::<Meal>(conn).expect("Error loading meals");
     /// Return a 200 response with the meals in the body
@@ -51,13 +59,16 @@ pub async fn get_all_meals() -> impl Responder {
 /*
 =============================== POST /meals ===============================
  */
-/// Creates the route for creating a meal in "/meals"
-///
+/// # Creates the route for creating a meal in "/meals"
 /// Creates a new meal in the database, based on the JSON body of the request
-///
-/// Returns a [HttpResponse] with a status of 201 and a JSON body containing the new meal
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `req` - A [HttpRequest] containing the request
+/// * `new_meal` - A [web::Json<NewMeal>] containing the JSON body of the request
+/// ## Returns
+/// * [HttpResponse] with a status of 201 and a JSON body containing the new meal
 #[post("/meals")]
-pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -80,7 +91,7 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
     }
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     ///Check if the meal with the same name already exists
     /// If it does, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
@@ -132,16 +143,17 @@ pub async fn create_meal(req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl
 =============================== GET /meals/{id} ===============================
  */
 
-/// Creates the route for getting a meal by ID in "/meals/{id}"
+/// # Creates the route for getting a meal by ID in "/meals/{id}"
 /// # Arguments
-/// * `id` - The ID of the meal to get
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `id` - A [web::Path<i32>] containing the ID of the meal
 /// # Returns
-/// Returns a [HttpResponse::Ok] with a JSON body containing the meal
+/// * [HttpResponse::Ok] with a JSON body containing the meal
 #[get("/meals/{id:\\d+}")]
-pub async fn get_meal(id: web::Path<i32>) -> impl Responder {
+pub async fn get_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the meal with the specified ID
     let meal = meals.find(&*id).first::<Meal>(conn);
@@ -164,16 +176,17 @@ pub async fn get_meal(id: web::Path<i32>) -> impl Responder {
 /*
 =============================== GET /meals/{name} ===============================
  */
-/// Creates the route for getting a meal by name in "/meals/{name}"
-/// # Arguments
-/// * `meal_name` - The name of the meal to get
-/// # Returns
-/// Returns a [HttpResponse::Ok] with a JSON body containing the meal
+/// # Creates the route for getting a meal by name in "/meals/{name}"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `meal_name` - A [web::Path<String>] containing the name of the meal
+/// ## Returns
+/// * [HttpResponse::Ok] with a JSON body containing the meal
 #[get("/meals/{name:.*}")]
-pub async fn get_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
+pub async fn get_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<String>) -> impl Responder {
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the meal with the specified name
     let meal = meals.filter(name.eq(&*meal_name)).first::<Meal>(conn);
@@ -196,16 +209,17 @@ pub async fn get_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
 /*
 =============================== DELETE /meals/{id} ===============================
  */
-/// Creates the route for deleting a meal by ID in "/meals/{id}"
-/// # Arguments
-/// * `id` - The ID of the meal to delete
-/// # Returns
-/// Returns a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+/// # Creates the route for deleting a meal by ID in "/meals/{id}"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `id` - A [web::Path<i32>] containing the ID of the meal
+/// ## Returns
+/// * [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
 #[delete("/meals/{id:\\d+}")]
-pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
+pub async fn delete_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the meal exists
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
@@ -242,16 +256,18 @@ pub async fn delete_meal(id: web::Path<i32>) -> impl Responder {
 =============================== DELETE /meals/{name} ===============================
  */
 
-/// Creates the route for deleting a meal by name in "/meals/{name}"
-/// # Arguments
-/// * `meal_name` - The name of the meal to delete
-/// # Returns
-/// Returns a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+/// # Creates the route for deleting a meal by name in "/meals/{name}"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `meal_name` - A [web::Path<String>] containing the name of the meal
+/// ## Returns
+/// * [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
+
 #[delete("/meals/{name:.*}")]
-pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder {
+pub async fn delete_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<String>) -> impl Responder {
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the meal exists
     /// If it does, save the ID of the meal,
@@ -287,15 +303,21 @@ pub async fn delete_meal_by_name(meal_name: web::Path<String>) -> impl Responder
 /*
 =============================== PUT /meals/{id} ===============================
  */
-/// Creates the route for updating a meal by ID in "/meals/{id}"
-/// # Arguments
+/// # Creates the route for updating a meal by ID in "/meals/{id}"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// * `req` - The [HttpRequest] object
-/// * `id` - The ID of the meal to update
-/// * `new_meal` - The new meal to update the old one with
-/// # Returns
-/// Returns a [HttpResponse::Ok] on success
+/// * `id` - A [web::Path<i32>] containing the ID of the meal
+/// * `new_meal` - A [web::Json<NewMeal>] containing the new meal data
+/// ## Returns
+/// * [HttpResponse::Ok] on success
+/// * [HttpResponse::UnsupportedMediaType] if the Content-Type is not application/json
+/// * [HttpResponse::UnprocessableEntity] if the new meal data is missing required fields
+/// * [HttpResponse::InternalServerError] on failure
+/// * [HttpResponse::NotFound] if the meal does not exist
+
 #[put("/meals/{id:\\d+}")]
-pub async fn update_meal(req: HttpRequest, id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -318,7 +340,7 @@ pub async fn update_meal(req: HttpRequest, id: web::Path<i32>, new_meal: web::Js
     }
 
     /// Create a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the meal exists
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5

@@ -1,4 +1,11 @@
 #![allow(unused_doc_comments)]
+#![allow(dead_code)]
+/// This file contains the database connection and pool used by both Services
+///
+/// The database connection is established using the [establish_connection] function
+/// Alternatively, a connection pool can be created using the [create_pool] function
+///
+/// The database schema is defined in [schema.rs](../schema.rs.html)
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PoolError};

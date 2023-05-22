@@ -1,22 +1,27 @@
 #![allow(unused_doc_comments)]
 
-use super::models::{Dish, NewDish, ReqDish};
-use serde_json::{from_slice, json};
-use super::ninjas_api::get_nutrition_info;
-use super::db::establish_connection;
-use super::db::DbPool;
+/// Actix imports
 use actix_web::{get, post, delete, HttpResponse, Responder, HttpRequest, web};
+use actix_web::web::{Data, Payload};
 
-use actix_web::web::Payload;
-
+/// Diesel imports
 use diesel;
 use diesel::prelude::*;
 use diesel::{insert_into, QueryDsl, RunQueryDsl};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 
+/// Misc imports
+use serde_json::{from_slice, json};
 use futures::StreamExt;
-use crate::ninjas_api::NutritionInfo;
+
+/// Module imports
+use super::models::{Dish, NewDish, ReqDish};
+use super::ninjas_api::get_nutrition_info;
+use super::ninjas_api::NutritionInfo;
+
+/// Crate imports
+use crate::db::DbPool;
 use crate::schema::dishes::dsl::dishes;
 use crate::schema::dishes::{dish_id, name};
 
@@ -47,11 +52,12 @@ pub async fn index() -> impl Responder {
 
 ///
 /// # Creates the route for getting all dishes in "/dishes"
-///
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body
 #[get("/dishes")]
-pub async fn  get_all_dishes(db_pool: web::Data<DbPool>) -> impl Responder {
+pub async fn  get_all_dishes(db_pool: Data<DbPool>) -> impl Responder {
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Load all dishes from the database
     let all_dishes = dishes.load::<Dish>(conn);
@@ -258,13 +264,14 @@ pub async fn get_dish(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> impl Re
 
 /// # Creates the route for deleting a dish by id in "/dishes/{id}"
 /// ## Arguments
+/// * `db_pool` - The database connection pool
 /// * `id` - The name of the dish to be deleted
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[delete("/dishes/{id:\\d+}")]
-pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
+pub async fn delete_dish(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
     /// Get a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the dish from the database
     let dish = dishes.find(&*id).first::<Dish>(conn);
