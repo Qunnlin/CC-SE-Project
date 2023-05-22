@@ -4,6 +4,7 @@ use super::models::{Dish, NewDish, ReqDish};
 use serde_json::{from_slice, json};
 use super::ninjas_api::get_nutrition_info;
 use super::db::establish_connection;
+use super::db::DbPool;
 use actix_web::{get, post, delete, HttpResponse, Responder, HttpRequest, web};
 
 use actix_web::web::Payload;
@@ -11,6 +12,8 @@ use actix_web::web::Payload;
 use diesel;
 use diesel::prelude::*;
 use diesel::{insert_into, QueryDsl, RunQueryDsl};
+use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::PgConnection;
 
 use futures::StreamExt;
 use crate::ninjas_api::NutritionInfo;
@@ -26,9 +29,10 @@ const NINJAS_UNAVAILABLE: &str = "-4";
 const DISH_NOT_FOUND: &str = "-5";
 
 ///
-/// Creates the default route for the API in "/"
+/// # Creates the default route for the API in "/"
 ///
-/// Returns a [HttpResponse::Ok] with a JSON body
+/// ## Returns
+/// * [HttpResponse::Ok] with a JSON body
 #[get("/")]
 pub async fn index() -> impl Responder {
     /// Return a JSON response with a message
@@ -42,13 +46,13 @@ pub async fn index() -> impl Responder {
  */
 
 ///
-/// Creates the route for getting all dishes in "/dishes"
+/// # Creates the route for getting all dishes in "/dishes"
 ///
-/// Returns a [HttpResponse::Ok] with a JSON body
+/// ## Returns
+/// * [HttpResponse::Ok] with a JSON body
 #[get("/dishes")]
-pub async fn  get_all_dishes() -> impl Responder {
-    /// Get a connection to the database
-    let conn = &mut establish_connection();
+pub async fn  get_all_dishes(db_pool: web::Data<DbPool>) -> impl Responder {
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Load all dishes from the database
     let all_dishes = dishes.load::<Dish>(conn);
     /// Check if the query was successful
@@ -66,11 +70,15 @@ pub async fn  get_all_dishes() -> impl Responder {
  */
 
 ///
-/// Creates the route for creating a dish in "/dishes"
-///
-/// Returns a [HttpResponse::Created] with a JSON body containing the ID of the new dish
+/// # Creates the route for creating a dish in "/dishes"
+/// ## Arguments
+/// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `request` - A [HttpRequest] containing the request
+/// * `payload` - A [Payload] containing the body of the request
+/// ## Returns
+/// * [HttpResponse::Created] with a JSON body containing the ID of the new dish
 #[post("/dishes")]
-pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Responder {
+pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut payload: Payload) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -151,7 +159,7 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
     };
 
     /// Get a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Create a new dish struct with the nutrition information
     let new_dish = NewDish {
@@ -199,9 +207,10 @@ pub async fn create_dish(request: HttpRequest, mut payload: Payload) -> impl Res
 =============================== DELETE /dishes ===============================
  */
 ///
-/// Creates the route for deleting a dish in "/dishes"
+/// # Creates the route for deleting a dish in "/dishes"
 ///
-/// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
+/// ## Returns
+/// * [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
 #[delete("/dishes")]
 pub async fn collection_deletion() -> impl Responder {
 
@@ -213,16 +222,17 @@ pub async fn collection_deletion() -> impl Responder {
 =============================== GET /dishes/{id} ===============================
  */
 
-/// Creates the route for getting a dish by id in "/dishes/{id}"
+/// # Creates the route for getting a dish by id in "/dishes/{id}"
 /// ## Arguments
+/// * `db_pool` - The database connection pool
 /// * `id` - The name of the dish to be retrieved
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[get("/dishes/{id:\\d+}")]
-pub async fn get_dish(id: web::Path<i32>) -> impl Responder {
+pub async fn get_dish(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> impl Responder {
 
     /// Get a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the dish from the database
     let dish = dishes.find(&*id).first::<Dish>(conn);
@@ -246,7 +256,7 @@ pub async fn get_dish(id: web::Path<i32>) -> impl Responder {
 =============================== DELETE /dishes/{id} ===============================
  */
 
-/// Creates the route for deleting a dish by id in "/dishes/{id}"
+/// # Creates the route for deleting a dish by id in "/dishes/{id}"
 /// ## Arguments
 /// * `id` - The name of the dish to be deleted
 /// ## Returns
@@ -293,16 +303,17 @@ pub async fn delete_dish(id: web::Path<i32>) -> impl Responder {
 =============================== GET /dishes/{name} ===============================
  */
 
-/// Creates the route for getting a dish by name in "/dishes/{name}"
+/// # Creates the route for getting a dish by name in "/dishes/{name}"
 /// ## Arguments
-/// * `dish_name` - The name of the dish to be retrieved
+/// * `db_pool` - [web::Data<DbPool>] The database connection pool
+/// * `dish_name` - [web::Path<String>] The name of the dish to be retrieved
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[get("/dishes/{name:.*}")]
-pub async fn get_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
+pub async fn get_dish_by_name(db_pool: web::Data<DbPool>, dish_name: web::Path<String>) -> impl Responder {
 
     /// Get a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the dish from the database
     let dish = dishes.filter(name.eq(&*dish_name)).first::<Dish>(conn);
@@ -326,16 +337,17 @@ pub async fn get_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
 =============================== DELETE /dishes/{name} ===============================
  */
 
-/// Creates the route for deleting a dish by name in "/dishes/{name}"
+/// # Creates the route for deleting a dish by name in "/dishes/{name}"
 /// ## Arguments
-/// * `dish_name` - The name of the dish to be deleted
+/// * `db_pool` - [web::Data<DbPool>] The database connection pool
+/// * `dish_name` - [web::Path<String>] The name of the dish to be deleted
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[delete("/dishes/{name:.*}")]
-pub async fn delete_dish_by_name(dish_name: web::Path<String>) -> impl Responder {
+pub async fn delete_dish_by_name(db_pool: web::Data<DbPool>, dish_name: web::Path<String>) -> impl Responder {
 
     /// Get a connection to the database
-    let conn = &mut establish_connection();
+    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the dish exists in the database and get its ID
     let id = dishes.filter(name.eq(&*dish_name)).select(dish_id).first::<i32>(conn);
