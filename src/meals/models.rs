@@ -61,3 +61,16 @@ pub struct NewMeal {
     pub dessert: Option<i32>,
 }
 
+/// Struct that represents a meal reqested by the user
+#[derive(Deserialize)]
+pub struct DietQuery {
+    pub diet: Option<String>,
+}
+/// Struct that represents a diet
+#[derive(Deserialize)]
+pub struct Diet {
+    pub name: String,
+    pub cal: f64,
+    pub sodium: f64,
+    pub sugar: f64,
+}

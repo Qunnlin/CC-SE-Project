@@ -2,7 +2,7 @@
 
 /// Actix Imports
 use actix_web::{get, post, delete, put, HttpResponse, Responder, HttpRequest, web};
-use actix_web::web::Data;
+use actix_web::web::{Data, Query};
 
 /// Diesel Imports
 use diesel;
@@ -12,14 +12,16 @@ use diesel::r2d2::{ConnectionManager, PooledConnection};
 
 /// Misc Imports
 use std::string::ToString;
-use serde_json::{json};
+use serde_json::{from_str, json};
 
 /// Module Imports
-use super::models::{Meal, NewMeal};
+use super::models::{Meal, NewMeal, Diet};
+use super::diet_client::get_diet_by_name;
 
 /// Crate Imports
 use crate::schema::meals::dsl::*;
 use crate::db::DbPool;
+use crate::meals::models::DietQuery;
 
 /// Error codes as defined in the Assigment
 const NOT_JSON: &str = "0";
@@ -27,6 +29,8 @@ const PARAM_NOT_FOUND: &str = "-1";
 const MEAL_ALREADY_EXISTS: &str = "-2";
 const MEAL_NOT_FOUND: &str = "-5";
 const DISH_ID_NOT_FOUND: &str = "-6";
+const DIET_NOT_FOUND: &str = "-7";
+const INTERNAL_SERVER_ERROR: &str = "-8";
 
 /// Disallow DELETE requests to the /meals route
 /// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
@@ -44,16 +48,78 @@ pub async fn meals_collection_deletion() -> impl Responder {
 /// # Creates the route for getting all meals in "/meals"
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
+/// * `query` - A optional [web::Query<String>] containing the diet to filter the meals by
 /// ## Returns
 /// * [HttpResponse] with a status of 200 and a JSON body containing all meals
 #[get("/meals")]
-pub async fn get_all_meals(db_pool: Data<DbPool>) -> impl Responder {
-    /// Establish a connection to the database
-    let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
-    /// Get all meals from the database
-    let results = meals.load::<Meal>(conn).expect("Error loading meals");
-    /// Return a 200 response with the meals in the body
-    HttpResponse::Ok().json(results)
+pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<DietQuery>) -> impl Responder {
+
+    /// Check if the diet query parameter is present and is not empty
+    if let Some(diet_name) = &query.diet {
+        if diet_name.is_empty() {
+            /// Establish a connection to the database
+            let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
+            /// Get all meals from the database
+            let results = meals.load::<Meal>(conn).expect("Error loading meals");
+            /// Return a 200 response with the meals in the body
+            HttpResponse::Ok().json(results)
+        } else {
+
+            /// Send GET request to "/diet/{diet}"
+            let diet = get_diet_by_name(diet_name).await;
+            /// If the diet is found parse the response body into a Diet struct
+            /// If the diet is not found, return a 404 response with a JSON body containing an error message and the error code -7
+            let diet: Diet = match diet {
+                Ok(diet) => {
+                    match from_str(&diet) {
+                        Ok(diet) => diet,
+                        Err(e) => {
+                            return HttpResponse::InternalServerError().json(json!({
+                            "message": "Internal Server Error",
+                            "error_code": INTERNAL_SERVER_ERROR,
+                            "error": e.to_string()
+                        }))
+                        }
+                    }
+                },
+                Err(e) => {
+                    return HttpResponse::NotFound().json(json!({
+                    "message": "Diet not found",
+                    "error_code": DIET_NOT_FOUND,
+                    "error": e.to_string()
+                }))
+                }
+            };
+
+            /// Establish a connection to the database
+            let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
+            /// Get all meals from the database that have <= the calories, sodium, and sugar of the diet
+            let results = meals
+                .filter(cal.le(&diet.cal))
+                .filter(sodium.le(&diet.sodium))
+                .filter(sugar.le(&diet.sugar))
+                .load::<Meal>(conn);
+            /// If there is an error loading the meals, return a 500 response with a JSON body containing an error message and the error code -8
+            return match results {
+                Ok(results) => HttpResponse::Ok().json(results),
+                Err(e) => {
+                    HttpResponse::InternalServerError().json(json!({
+                    "message": "Internal Server Error",
+                    "error_code": INTERNAL_SERVER_ERROR,
+                    "error": e.to_string()
+                }))
+                }
+            };
+        }
+    } else {
+        /// Establish a connection to the database
+        let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
+        /// Get all meals from the database
+        let results = meals.load::<Meal>(conn).expect("Error loading meals");
+        /// Return a 200 response with the meals in the body
+        HttpResponse::Ok().json(results)
+    }
+
 }
 
 /*
