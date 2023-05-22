@@ -33,19 +33,6 @@ const DISH_NOT_RECOGNIZED: &str = "-3";
 const NINJAS_UNAVAILABLE: &str = "-4";
 const DISH_NOT_FOUND: &str = "-5";
 
-///
-/// # Creates the default route for the API in "/"
-///
-/// ## Returns
-/// * [HttpResponse::Ok] with a JSON body
-#[get("/")]
-pub async fn index() -> impl Responder {
-    /// Return a JSON response with a message
-    HttpResponse::Ok().json(json!({
-        "message": "Welcome to the MEALS API"
-    }))
-}
-
 /*
 =============================== GET /dishes ===============================
  */

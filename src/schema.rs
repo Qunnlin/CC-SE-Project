@@ -1,12 +1,12 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    diets (id) {
-        id -> Int4,
+    diets (diet_id) {
+        diet_id -> Int4,
         name -> Varchar,
-        cal -> Int4,
-        sodium -> Int4,
-        sugar -> Int4,
+        cal -> Float8,
+        sodium -> Float8,
+        sugar -> Float8,
     }
 }
 

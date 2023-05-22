@@ -8,6 +8,9 @@ edition = "2021"
 name = "meals_api"
 path = "src/meals_api.rs"
 
+[[bin]]
+name = "diets_api"
+path = "src/diets_api.rs"
 
 
 

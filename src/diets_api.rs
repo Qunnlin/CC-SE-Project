@@ -5,7 +5,7 @@
 /// and starts the Actix web server on the defined port and host
 
 mod db;
-mod meals;
+mod diets;
 mod schema;
 
 use actix_web::{App, HttpResponse, HttpServer, Responder};
@@ -13,7 +13,7 @@ use actix_web::web::Data;
 use serde_json::json;
 use env_logger;
 use db::{create_pool, DbPool};
-use meals::*;
+use diets::*;
 
 const HOST: &str = "0.0.0.0";
 const PORT: u16 = 8000;
@@ -27,11 +27,9 @@ const PORT: u16 = 8000;
 pub async fn index() -> impl Responder {
     /// Return a JSON response with a message
     HttpResponse::Ok().json(json!({
-        "message": "Welcome to the MEALS API"
+        "message": "Welcome to the DIETS API"
     }))
 }
-
-
 
 /// Main function
 #[actix_web::main]
@@ -51,21 +49,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(Data::new(pool.clone()))
             .service(index)
-            .service(collection_deletion)
-            .service(meals_collection_deletion)
-            .service(get_all_dishes)
-            .service(create_dish)
-            .service(get_dish)
-            .service(get_dish_by_name)
-            .service(delete_dish)
-            .service(delete_dish_by_name)
-            .service(get_all_meals)
-            .service(create_meal)
-            .service(get_meal)
-            .service(get_meal_by_name)
-            .service(delete_meal)
-            .service(delete_meal_by_name)
-            .service(update_meal)
+            .service(diets_collection_deletion)
+            .service(get_all_diets)
+            .service(create_diet)
+            .service(get_diet_by_id)
+            .service(get_diet_by_name)
     })
         .bind((HOST, PORT))?
         .run()
