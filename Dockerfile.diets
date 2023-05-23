@@ -1,15 +1,9 @@
-FROM rust:slim as diets_app
+FROM rust:slim as chef
 
+RUN cargo install cargo-chef
 WORKDIR /usr/src/diets_api
 
-COPY migrations migrations
-COPY Cargo.toml Cargo.toml
-COPY Cargo.lock Cargo.lock
-COPY diesel.toml diesel.toml
-COPY .env .env
-COPY src src
-
-# Dependencies
+# Dependencies are built in this stage to cache them
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     pkg-config \
@@ -18,11 +12,29 @@ RUN apt-get update && apt-get install -y \
     default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /usr/src/diets_api/recipe.json recipe.json
+
+
+WORKDIR /usr/src/diets_api
+
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . .
+
 RUN cargo build --bin diets_api --release
 
-EXPOSE 5002
+FROM chef AS runtime
+WORKDIR /usr/local/bin
 
-CMD ["./target/release/diets_api"]
+COPY --from=builder /usr/src/diets_api/target/release/diets_api .
+COPY --from=builder /usr/src/diets_api/.env .env
+
+ENTRYPOINT ["/usr/local/bin/diets_api"]
+
 
 
 
