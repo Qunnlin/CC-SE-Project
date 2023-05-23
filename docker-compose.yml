@@ -1,5 +1,19 @@
 version: '3'
 services:
+
+  haproxy:
+    image: haproxy:latest
+    restart: always
+    depends_on:
+      - diets_api
+      - meals_api
+    ports:
+        - "80:80"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+        - meals
+
   db:
     image: postgres
     environment:
@@ -11,23 +25,48 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    ports:
-      - "5432:5432"
     networks:
         - meals
 
-  meals_api:
+  diets_api:
     build:
         context: .
-        dockerfile: Dockerfile
-    image: meals_api:v1
+        dockerfile: Dockerfile.diets
+    image: diets_api:v1
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     depends_on:
       db:
         condition: service_healthy
     networks:
         - meals
     ports:
-        - "8000:8000"
+        - "5002:8002"
+
+  meals_api:
+    build:
+        context: .
+        dockerfile: Dockerfile.meals
+    image: meals_api:v2
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+        - meals
+    ports:
+        - "5001:8001"
+
+
 
 networks:
     meals:

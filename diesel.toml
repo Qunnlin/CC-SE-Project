@@ -6,3 +6,6 @@ file = "src/schema.rs"
 
 [migrations_directory]
 dir = "migrations"
+
+[connection]
+url = "postgres://postgres:postgres@db:5432/dishes"

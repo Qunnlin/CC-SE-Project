@@ -5,3 +5,5 @@ create table diets (
     sodium FLOAT NOT NULL,
     sugar FLOAT NOT NULL
 );
+
+

@@ -1,0 +1,28 @@
+FROM rust:slim as diets_app
+
+WORKDIR /usr/src/diets_api
+
+COPY migrations migrations
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+COPY diesel.toml diesel.toml
+COPY .env .env
+COPY src src
+
+# Dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    pkg-config \
+    libssl-dev \
+    libsqlite3-dev \
+    default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cargo build --bin diets_api --release
+
+EXPOSE 5002
+
+CMD ["./target/release/diets_api"]
+
+
+

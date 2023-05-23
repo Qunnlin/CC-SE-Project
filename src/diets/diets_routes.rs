@@ -12,7 +12,6 @@ use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 
 /// Misc imports
-use serde_json::{json};
 
 /// Module imports
 use super::models::{Diet, NewDiet};
@@ -22,21 +21,12 @@ use crate::db::DbPool;
 use crate::schema::diets::dsl::*;
 
 
-/// Error codes as defined in the Assigment
-const NOT_JSON: &str = "0";
-const PARAM_NOT_FOUND: &str = "-1";
-const DIET_ALREADY_EXISTS: &str = "-2";
-const DIET_NOT_FOUND: &str = "-5";
-const INTERNAL_SERVER_ERROR: &str = "-6";
-
 /// Disallow DELETE requests to the /diets route
 /// Returns a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
 #[delete("/diets")]
 pub async fn diets_collection_deletion() -> impl Responder {
     /// Return a [HttpResponse::MethodNotAllowed] with a JSON body containing an error message and the error code -7
-    HttpResponse::MethodNotAllowed().json(json!({
-        "message": "Method not allowed",
-    }))
+    HttpResponse::MethodNotAllowed().body("Method not allowed")
 }
 
 /*
@@ -52,9 +42,27 @@ pub async fn get_all_diets(db_pool: Data<DbPool>) -> impl Responder {
     /// Establish a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Get all meals from the database
-    let results = diets.load::<Diet>(conn).expect("Error loading meals");
-    /// Return a 200 response with the meals in the body
-    HttpResponse::Ok().json(results)
+    let results = diets.load::<Diet>(conn);
+
+    return match results {
+        Ok(results) => {
+
+            /// Convert Vec<Diet> to Vec<NewDiet>
+            let results: Vec<NewDiet> = results.into_iter().map(|diet| NewDiet {
+                name: diet.name,
+                cal: diet.cal,
+                sodium: diet.sodium,
+                sugar: diet.sugar,
+            }).collect();
+
+            /// Return a 200 response with the diets in the body
+            HttpResponse::Ok().json(results)
+        },
+        Err(e) => {
+            /// Return a 500 response with a JSON body containing an error message and the error code -6
+            HttpResponse::InternalServerError().body(format!("Error querying the database: {}", e))
+        }
+    }
 }
 
 /*
@@ -73,22 +81,22 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
 
     /// Check if the Content-Type is application/json
     ///
-    /// If it is not, return a [HttpResponse::UnsupportedMediaType] with a Error Code 0
+    /// If it is not, return a [HttpResponse::UnsupportedMediaType]
     match req.headers().get("Content-Type") {
         Some(content_type) => {
             if content_type != "application/json" {
-                return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
+                return HttpResponse::UnsupportedMediaType().body("POST expects content type to be application/json")
             }
         },
         None => {
-            return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
+            return HttpResponse::UnsupportedMediaType().body("POST expects content type to be application/json")
         }
     }
 
     /// Check if new_diet is has all the required fields
     /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
     if new_diet.name.is_empty() || new_diet.cal.is_nan() || new_diet.sodium.is_nan() || new_diet.sugar.is_nan() {
-        return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
+        return HttpResponse::UnprocessableEntity().body("Incorrect POST format")
     }
 
     /// Create a connection to the database
@@ -99,8 +107,7 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
     let diet_exists = diets.filter(name.eq(&*new_diet.name)).select(name).first::<String>(conn);
     match diet_exists {
         Ok(e) => {
-            eprintln!("Diet already exists: {}", e);
-            return HttpResponse::UnprocessableEntity().body(DIET_ALREADY_EXISTS)
+            return HttpResponse::UnprocessableEntity().body("Diet with name {} already exists".replace("{}", &*e))
         }
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -117,26 +124,12 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
         Ok(new_diet) => new_diet,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::UnprocessableEntity().body(INTERNAL_SERVER_ERROR)
-        }
-    };
-
-    /// Get the ID of the newly inserted diet
-    ///
-    /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code -5
-    ///
-    /// TODO: Find a better way to get the ID of the newly inserted diet
-    let new_diet_id = diets.filter(name.eq(&*new_diet.name)).select(diet_id).first::<i32>(conn);
-    let new_diet_id = match new_diet_id {
-        Ok(new_diet_id) => new_diet_id,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::InternalServerError().body(DIET_NOT_FOUND)
+            return HttpResponse::InternalServerError().body("Failed to insert new diet")
         }
     };
 
     /// Return a [HttpResponse::Created] with a JSON body containing the ID of the new diet
-    HttpResponse::Created().body(new_diet_id.to_string())
+    HttpResponse::Created().body("Diet {} was created successfully".replace("{}", &*new_diet.name))
 
 }
 
@@ -159,15 +152,22 @@ pub async fn get_diet_by_id(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> i
     /// Check if the diet was found
     ///
     /// If it was not, return a [HttpResponse::NotFound] with a Error Code -5
-    let result = match diet {
-        Ok(result) => result,
+    return match diet {
+        Ok(diet) => {
+            /// Only return name, cal, sodium, and sugar
+            let diet = NewDiet {
+                name: diet.name,
+                cal: diet.cal,
+                sodium: diet.sodium,
+                sugar: diet.sugar,
+            };
+            HttpResponse::Ok().json(diet)
+        }
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().body(DIET_NOT_FOUND)
+            HttpResponse::NotFound().body("Diet {} not found".replace("{}", &*id.to_string()))
         }
     };
-    /// Return a [HttpResponse::Ok] with a JSON body containing the diet
-    HttpResponse::Ok().json(result)
 }
 
 /*
@@ -186,16 +186,26 @@ pub async fn get_diet_by_name(db_pool: web::Data<DbPool>, diet_name: web::Path<S
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Get the diet from the database
     let result = diets.filter(name.eq(&*diet_name)).first::<Diet>(conn);
+
     /// Check if the diet was found
     ///
+    /// If it was, return a [HttpResponse::Ok] with a JSON body containing the diet
     /// If it was not, return a [HttpResponse::NotFound] with a Error Code -5
-    let result = match result {
-        Ok(result) => result,
+    return match result {
+        Ok(result) => {
+            /// Only return name, cal, sodium, and sugar
+            let diet = NewDiet {
+                name: result.name,
+                cal: result.cal,
+                sodium: result.sodium,
+                sugar: result.sugar,
+            };
+            HttpResponse::Ok().json(diet)
+        }
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::NotFound().body(DIET_NOT_FOUND)
+            HttpResponse::NotFound().body("Diet {} not found".replace("{}", &*diet_name))
         }
     };
-    /// Return a [HttpResponse::Ok] with a JSON body containing the diet
-    HttpResponse::Ok().json(result)
+
 }

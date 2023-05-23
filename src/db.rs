@@ -12,7 +12,22 @@ use diesel::r2d2::{ConnectionManager, Pool, PoolError};
 
 use dotenv::dotenv;
 use std::env;
+use std::error::Error;
 use diesel::{Connection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+
+pub fn run_migrations(pool: DbPool) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+
+    let connection = &mut pool.get().unwrap();
+
+    connection.run_pending_migrations(MIGRATIONS)?;
+
+    Ok(())
+}
+
+
 
 ///
 /// Establishes a connection to the database
@@ -36,4 +51,5 @@ pub fn create_pool() -> Result<DbPool, PoolError> {
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder().build(manager)
 }
+
 

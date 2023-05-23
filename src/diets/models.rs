@@ -15,7 +15,7 @@ pub struct Diet {
 }
 
 /// Struct to represent a new diet to be inserted into the database or requested by the user
-#[derive(Insertable, Deserialize)]
+#[derive( Insertable, Serialize, Deserialize)]
 #[diesel(table_name = diets)]
 pub struct NewDiet {
     pub name: String,

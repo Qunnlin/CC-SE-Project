@@ -12,11 +12,11 @@ use actix_web::{App, HttpResponse, HttpServer, Responder};
 use actix_web::web::Data;
 use serde_json::json;
 use env_logger;
-use db::{create_pool, DbPool};
+use db::{create_pool, DbPool, run_migrations};
 use diets::*;
 
 const HOST: &str = "0.0.0.0";
-const PORT: u16 = 8001;
+const PORT: u16 = 8002;
 
 ///
 /// # Creates the default route for the API in "/"
@@ -41,6 +41,12 @@ async fn main() -> std::io::Result<()> {
 
     /// Create a connection pool to the database
     let pool: DbPool = create_pool().expect("Failed to create pool");
+
+    /// Run the migrations
+    match run_migrations(pool.clone()) {
+        Ok(_) => println!("Migrations run successfully"),
+        Err(e) => println!("Error running migrations: {}", e),
+    }
 
     /// Start the Actix web server and bind it to port 8080
     ///

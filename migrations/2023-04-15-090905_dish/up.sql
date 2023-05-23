@@ -17,7 +17,7 @@ create table meals (
     sugar FLOAT
 );
 
-
+-- Function to update meal nutrition based on dishes
 CREATE OR REPLACE FUNCTION update_meal_nutrition() RETURNS TRIGGER AS $$
 BEGIN
     NEW.cal := COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.appetizer), 0)
@@ -33,6 +33,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Trigger to update meal nutrition
 CREATE TRIGGER update_meal_nutrition_trigger
     BEFORE INSERT OR UPDATE ON meals
     FOR EACH ROW

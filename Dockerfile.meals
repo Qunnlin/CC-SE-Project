@@ -1,0 +1,26 @@
+FROM rust:slim as meals_app
+#
+WORKDIR /usr/src/meals_api
+
+COPY migrations migrations
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+COPY diesel.toml diesel.toml
+COPY .env .env
+COPY src src
+
+# Dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    pkg-config \
+    libssl-dev \
+    libsqlite3-dev \
+    default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cargo build --bin meals_api --release
+
+
+EXPOSE 5001
+
+CMD ["./target/release/meals_api"]
