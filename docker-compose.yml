@@ -69,9 +69,6 @@ services:
     ports:
         - "5001:8001"
 
-
-
-
 networks:
     meals:
         driver: bridge
