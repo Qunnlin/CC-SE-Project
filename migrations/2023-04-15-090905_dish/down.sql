@@ -1,2 +1,2 @@
-DROP TABLE dishes;
 DROP TABLE meals;
+DROP TABLE dishes;

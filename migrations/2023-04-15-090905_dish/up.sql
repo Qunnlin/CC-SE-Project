@@ -1,17 +1,17 @@
 create table dishes (
-    dish_id serial PRIMARY KEY,
+    id serial PRIMARY KEY,
     name VARCHAR ( 50 ) UNIQUE NOT NULL,
-    calories FLOAT NOT NULL,
+    cal FLOAT NOT NULL,
     sodium FLOAT NOT NULL,
     sugar FLOAT NOT NULL,
-    serving_size FLOAT NOT NULL
+    size FLOAT NOT NULL
 );
 create table meals (
-    meal_id serial PRIMARY KEY,
+    id serial PRIMARY KEY,
     name VARCHAR ( 50 ) UNIQUE NOT NULL,
-    appetizer INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL,
-    main INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL ,
-    dessert INTEGER REFERENCES dishes ( dish_id ) ON DELETE SET NULL,
+    appetizer INTEGER REFERENCES dishes ( ID ) ON DELETE SET NULL,
+    main INTEGER REFERENCES dishes ( ID ) ON DELETE SET NULL ,
+    dessert INTEGER REFERENCES dishes ( ID ) ON DELETE SET NULL,
     cal FLOAT,
     sodium FLOAT,
     sugar FLOAT
@@ -20,15 +20,15 @@ create table meals (
 -- Function to update meal nutrition based on dishes
 CREATE OR REPLACE FUNCTION update_meal_nutrition() RETURNS TRIGGER AS $$
 BEGIN
-    NEW.cal := COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.main), 0)
-        + COALESCE((SELECT calories FROM dishes WHERE dish_id = NEW.dessert), 0);
-    NEW.sodium := COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.main), 0)
-        + COALESCE((SELECT sodium FROM dishes WHERE dish_id = NEW.dessert), 0);
-    NEW.sugar := COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.appetizer), 0)
-        + COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.main), 0)
-        + COALESCE((SELECT sugar FROM dishes WHERE dish_id = NEW.dessert), 0);
+    NEW.cal := COALESCE((SELECT cal FROM dishes WHERE id = NEW.appetizer), 0)
+        + COALESCE((SELECT cal FROM dishes WHERE id = NEW.main), 0)
+        + COALESCE((SELECT cal FROM dishes WHERE id = NEW.dessert), 0);
+    NEW.sodium := COALESCE((SELECT sodium FROM dishes WHERE id = NEW.appetizer), 0)
+        + COALESCE((SELECT sodium FROM dishes WHERE id = NEW.main), 0)
+        + COALESCE((SELECT sodium FROM dishes WHERE id = NEW.dessert), 0);
+    NEW.sugar := COALESCE((SELECT sugar FROM dishes WHERE id = NEW.appetizer), 0)
+        + COALESCE((SELECT sugar FROM dishes WHERE id = NEW.main), 0)
+        + COALESCE((SELECT sugar FROM dishes WHERE id = NEW.dessert), 0);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

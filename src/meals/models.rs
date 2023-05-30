@@ -8,12 +8,12 @@ use serde::{Serialize, Deserialize};
 /// Dish struct to represent a dish in the database
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct Dish {
-    pub dish_id: i32,
+    pub id: i32,
     pub name: String,
-    pub calories: f64,
+    pub cal: f64,
     pub sodium: f64,
     pub sugar: f64,
-    pub serving_size: f64,
+    pub size: f64,
 }
 
 /// Struct to represent a new dish to be inserted into the database
@@ -21,10 +21,10 @@ pub struct Dish {
 #[diesel(table_name = dishes)]
 pub struct NewDish {
     pub name: String,
-    pub calories: f64,
+    pub cal: f64,
     pub sodium: f64,
     pub sugar: f64,
-    pub serving_size: f64,
+    pub size: f64,
 
 }
 
@@ -41,7 +41,7 @@ pub struct ReqDish {
 /// Meal struct to represent a meal in the database
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct Meal {
-    pub meal_id: i32,
+    pub id: i32,
     pub name: String,
     pub appetizer: Option<i32>,
     pub main: Option<i32>,

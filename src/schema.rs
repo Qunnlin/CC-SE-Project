@@ -1,8 +1,8 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    diets (diet_id) {
-        diet_id -> Int4,
+    diets (id) {
+        id -> Int4,
         name -> Varchar,
         cal -> Float8,
         sodium -> Float8,
@@ -11,19 +11,19 @@ diesel::table! {
 }
 
 diesel::table! {
-    dishes (dish_id) {
-        dish_id -> Int4,
+    dishes (id) {
+        id -> Int4,
         name -> Varchar,
-        calories -> Float8,
+        cal -> Float8,
         sodium -> Float8,
         sugar -> Float8,
-        serving_size -> Float8,
+        size -> Float8,
     }
 }
 
 diesel::table! {
-    meals (meal_id) {
-        meal_id -> Int4,
+    meals (id) {
+        id -> Int4,
         name -> Varchar,
         appetizer -> Nullable<Int4>,
         main -> Nullable<Int4>,

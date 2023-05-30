@@ -191,7 +191,7 @@ pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, new_meal:
     /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code -5
     ///
     /// TODO: Find a better way to get the ID of the newly inserted dish
-    let new_meal_id = meals.filter(name.eq(&*new_meal.name)).select(meal_id).first::<i32>(conn);
+    let new_meal_id = meals.filter(name.eq(&*new_meal.name)).select(id).first::<i32>(conn);
     let new_meal_id = match new_meal_id {
         Ok(new_meal_id) => new_meal_id,
         Err(e) => {
@@ -212,17 +212,17 @@ pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, new_meal:
 /// # Creates the route for getting a meal by ID in "/meals/{id}"
 /// # Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
-/// * `id` - A [web::Path<i32>] containing the ID of the meal
+/// * `req_id` - A [web::Path<i32>] containing the ID of the meal
 /// # Returns
 /// * [HttpResponse::Ok] with a JSON body containing the meal
 #[get("/meals/{id:\\d+}")]
-pub async fn get_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
+pub async fn get_meal(db_pool: Data<DbPool>, req_id: web::Path<i32>) -> impl Responder {
 
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the meal with the specified ID
-    let meal = meals.find(&*id).first::<Meal>(conn);
+    let meal = meals.find(&*req_id).first::<Meal>(conn);
 
     /// Check if the meal exists
     ///
@@ -278,18 +278,18 @@ pub async fn get_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<String
 /// # Creates the route for deleting a meal by ID in "/meals/{id}"
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
-/// * `id` - A [web::Path<i32>] containing the ID of the meal
+/// * `req_id` - A [web::Path<i32>] containing the ID of the meal
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
 #[delete("/meals/{id:\\d+}")]
-pub async fn delete_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
+pub async fn delete_meal(db_pool: Data<DbPool>, req_id: web::Path<i32>) -> impl Responder {
 
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the meal exists
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
-    let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
+    let meal_exists = meals.find(&*req_id).select(id).first::<i32>(conn);
     match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
@@ -299,7 +299,7 @@ pub async fn delete_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Resp
     };
 
     /// Delete the meal with the specified ID
-    let meal = delete(meals.find(&*id)).execute(conn);
+    let meal = delete(meals.find(&*req_id)).execute(conn);
 
     /// Check if the meal exists
     ///
@@ -315,7 +315,7 @@ pub async fn delete_meal(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Resp
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the deleted meal
-    HttpResponse::Ok().body(id.to_string())
+    HttpResponse::Ok().body(req_id.to_string())
 }
 
 /*
@@ -338,7 +338,7 @@ pub async fn delete_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<Str
     /// Check if the meal exists
     /// If it does, save the ID of the meal,
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
-    let meal_exists = meals.filter(name.eq(&*meal_name)).select(meal_id).first::<i32>(conn);
+    let meal_exists = meals.filter(name.eq(&*meal_name)).select(id).first::<i32>(conn);
     let deleted_id = match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
@@ -373,17 +373,17 @@ pub async fn delete_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<Str
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// * `req` - The [HttpRequest] object
-/// * `id` - A [web::Path<i32>] containing the ID of the meal
+/// * `req_id` - A [web::Path<i32>] containing the ID of the meal
 /// * `new_meal` - A [web::Json<NewMeal>] containing the new meal data
 /// ## Returns
 /// * [HttpResponse::Ok] on success
 /// * [HttpResponse::UnsupportedMediaType] if the Content-Type is not application/json
 /// * [HttpResponse::UnprocessableEntity] if the new meal data is missing required fields
-/// * [HttpResponse::InternalServerError] on failure
+/// * [HttpResponse::InternalSexexrrverError] on failure
 /// * [HttpResponse::NotFound] if the meal does not exist
 
 #[put("/meals/{id:\\d+}")]
-pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, req_id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -410,7 +410,7 @@ pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, id: web::Path<
 
     /// Check if the meal exists
     /// If it does not, return a [HttpResponse::NotFound] with a Error Code -5
-    let meal_exists = meals.find(&*id).select(meal_id).first::<i32>(conn);
+    let meal_exists = meals.find(&*req_id).select(id).first::<i32>(conn);
     match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
@@ -423,7 +423,7 @@ pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, id: web::Path<
     };
 
     /// Update the meal with the specified ID
-    let meal = diesel::update(meals.find(&*id))
+    let meal = diesel::update(meals.find(&*req_id))
         .set((
             name.eq(&new_meal.name),
             appetizer.eq(&new_meal.appetizer),
@@ -447,5 +447,5 @@ pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, id: web::Path<
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing the ID of the updated meal
-    HttpResponse::Ok().body(id.to_string())
+    HttpResponse::Ok().body(req_id.to_string())
 }

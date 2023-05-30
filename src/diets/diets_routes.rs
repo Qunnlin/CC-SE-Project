@@ -140,15 +140,15 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
 /// Gets a diet from the database, based on the ID in the URL
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
-/// * `id` - A [web::Path<i32>] containing the ID of the diet
+/// * `req_id` - A [web::Path<i32>] containing the ID of the diet
 /// ## Returns
 /// * [HttpResponse] with a status of 200 and a JSON body containing the diet
 #[get("/diets/{id:\\d+}")]
-pub async fn get_diet_by_id(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> impl Responder {
+pub async fn get_diet_by_id(db_pool: web::Data<DbPool>, req_id: web::Path<i32>) -> impl Responder {
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
     /// Get the diet from the database
-    let diet = diets.find(&*id).first::<Diet>(conn);
+    let diet = diets.find(&*req_id).first::<Diet>(conn);
     /// Check if the diet was found
     ///
     /// If it was not, return a [HttpResponse::NotFound] with a Error Code -5
@@ -165,7 +165,7 @@ pub async fn get_diet_by_id(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> i
         }
         Err(e) => {
             eprintln!("Error: {}", e);
-            HttpResponse::NotFound().body("Diet {} not found".replace("{}", &*id.to_string()))
+            HttpResponse::NotFound().body("Diet {} not found".replace("{}", &*req_id.to_string()))
         }
     };
 }

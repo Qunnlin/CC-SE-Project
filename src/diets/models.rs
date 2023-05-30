@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 /// Diet struct to represent a diet in the database
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct Diet {
-    pub diet_id: i32,
+    pub id: i32,
     pub name: String,
     pub cal: f64,
     pub sodium: f64,

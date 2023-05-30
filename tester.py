@@ -121,15 +121,15 @@ DIETS = [
 def populate():
     # Populate dishes
     for dish in DISHES:
-        requests.post(MEALS_BASE + DISHES_ENDPOINT, json=dish)
+        print(requests.post(MEALS_BASE + DISHES_ENDPOINT, json=dish))
 
     # Populate meals
     for meal in MEALS:
-        requests.post(MEALS_BASE + MEALS_ENDPOINT, json=meal)
+        print(requests.post(MEALS_BASE + MEALS_ENDPOINT, json=meal))
 
     # Populate diets
     for diet in DIETS:
-        requests.post(DIETS_BASE + DIETS_ENDPOINT, json=diet)
+        print(requests.post(DIETS_BASE + DIETS_ENDPOINT, json=diet))
 
 # Run test queries
 def test():

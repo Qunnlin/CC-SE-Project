@@ -23,7 +23,7 @@ use super::ninjas_api::NutritionInfo;
 /// Crate imports
 use crate::db::DbPool;
 use crate::schema::dishes::dsl::dishes;
-use crate::schema::dishes::{dish_id, name};
+use crate::schema::dishes::{id, name};
 
 /// Error codes as defined in the Assignment
 const NOT_JSON: &str = "0";
@@ -106,12 +106,12 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
     let body = from_slice::<ReqDish>(&body);
     /// Check if the deserialization was successful and the required fields are present
     ///
-    /// If it was not, return a [HttpResponse::UnsupportedMediaType] with a Error Code -1
+    /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
     let body = match body {
         Ok(body) => body,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::UnsupportedMediaType().body(PARAM_NOT_FOUND)
+            return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
         }
     };
 
@@ -157,10 +157,10 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
     /// Create a new dish struct with the nutrition information
     let new_dish = NewDish {
         name: body.name.clone(),
-        calories: nut_info.calories,
+        cal: nut_info.calories,
         sodium: nut_info.sodium_mg,
         sugar: nut_info.sugar_g,
-        serving_size: nut_info.serving_size_g,
+        size: nut_info.serving_size_g,
     };
 
     /// Insert the new dish into the database
@@ -181,7 +181,7 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
     ///
     /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code
     /// TODO: Find a better way to get the ID of the newly inserted dish
-    let new_dish_id = dishes.filter(name.eq(&*body.name)).select(dish_id).first::<i32>(conn);
+    let new_dish_id = dishes.filter(name.eq(&*body.name)).select(id).first::<i32>(conn);
     let new_dish_id = match new_dish_id {
         Ok(new_dish_id) => new_dish_id,
         Err(e) => {
@@ -218,17 +218,17 @@ pub async fn collection_deletion() -> impl Responder {
 /// # Creates the route for getting a dish by id in "/dishes/{id}"
 /// ## Arguments
 /// * `db_pool` - The database connection pool
-/// * `id` - The name of the dish to be retrieved
+/// * `req_id` - The ID of the dish to be retrieved
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[get("/dishes/{id:\\d+}")]
-pub async fn get_dish(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> impl Responder {
+pub async fn get_dish(db_pool: web::Data<DbPool>, req_id: web::Path<i32>) -> impl Responder {
 
     /// Get a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the dish from the database
-    let dish = dishes.find(&*id).first::<Dish>(conn);
+    let dish = dishes.find(&*req_id).first::<Dish>(conn);
 
     /// Check if the dish was found in the database
     ///
@@ -252,16 +252,16 @@ pub async fn get_dish(db_pool: web::Data<DbPool>, id: web::Path<i32>) -> impl Re
 /// # Creates the route for deleting a dish by id in "/dishes/{id}"
 /// ## Arguments
 /// * `db_pool` - The database connection pool
-/// * `id` - The name of the dish to be deleted
+/// * `req_id` - The name of the dish to be deleted
 /// ## Returns
 /// * [HttpResponse::Ok] with a JSON body containing the dish
 #[delete("/dishes/{id:\\d+}")]
-pub async fn delete_dish(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Responder {
+pub async fn delete_dish(db_pool: Data<DbPool>, req_id: web::Path<i32>) -> impl Responder {
     /// Get a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Get the dish from the database
-    let dish = dishes.find(&*id).first::<Dish>(conn);
+    let dish = dishes.find(&*req_id).first::<Dish>(conn);
 
     /// Check if the dish was found in the database
     /// If it was not, return a [HttpResponse::NotFound] with a JSON body containing an error message and the error code -5
@@ -274,7 +274,7 @@ pub async fn delete_dish(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Resp
     };
 
     /// Delete the dish from the database
-    let delete_dish = diesel::delete(dishes.find(&*id)).execute(conn);
+    let delete_dish = diesel::delete(dishes.find(&*req_id)).execute(conn);
 
     /// Check if the dish was deleted from the database
     ///
@@ -290,7 +290,7 @@ pub async fn delete_dish(db_pool: Data<DbPool>, id: web::Path<i32>) -> impl Resp
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing a success message and the id of the deleted dish
-    HttpResponse::Ok().body(id.into_inner().to_string())
+    HttpResponse::Ok().body(req_id.into_inner().to_string())
 }
 
 /*
@@ -344,12 +344,12 @@ pub async fn delete_dish_by_name(db_pool: web::Data<DbPool>, dish_name: web::Pat
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
     /// Check if the dish exists in the database and get its ID
-    let id = dishes.filter(name.eq(&*dish_name)).select(dish_id).first::<i32>(conn);
+    let dish_id = dishes.filter(name.eq(&*dish_name)).select(id).first::<i32>(conn);
 
     /// Check if the ID could be retrieved
     ///
     /// If it was not, return a [HttpResponse::NotFound] with a JSON body containing an error message and the error code -5
-    let id = match id {
+    let dish_id = match dish_id {
         Ok(new_dish_id) => new_dish_id,
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -374,7 +374,7 @@ pub async fn delete_dish_by_name(db_pool: web::Data<DbPool>, dish_name: web::Pat
     };
 
     /// Return a [HttpResponse::Ok] with a JSON body containing a success message and the id of the deleted dish
-    HttpResponse::Ok().body(id.to_string())
+    HttpResponse::Ok().body(dish_id.to_string())
 }
 
 
