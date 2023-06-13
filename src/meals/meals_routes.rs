@@ -168,8 +168,15 @@ pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, req_meal:
     let meal = match meal {
         Ok(meal) => meal,
         Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
+            /// TODO: Make this nicer with a match statement and Error types
+            if e.to_string().contains("duplicate key value violates unique constraint") {
+                return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
+            }
+            if e.to_string().contains("violates foreign key constraint") {
+                return HttpResponse::UnprocessableEntity().body(DISH_ID_NOT_FOUND)
+            }
+            return HttpResponse::UnprocessableEntity().body(e.to_string())
+
         }
     };
 
