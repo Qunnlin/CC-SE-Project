@@ -42,7 +42,7 @@ services:
     build:
         context: .
         dockerfile: Dockerfile.diets
-    image: diets_api:v2
+    image: diets_api:v1
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002"]
@@ -66,7 +66,7 @@ services:
     build:
         context: .
         dockerfile: Dockerfile.meals
-    image: meals_api:v3
+    image: meals_api:v2
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001"]
