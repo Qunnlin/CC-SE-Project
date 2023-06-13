@@ -15,13 +15,12 @@ use std::string::ToString;
 use serde_json::{from_str, json};
 
 /// Module Imports
-use super::models::{Meal, NewMeal, Diet};
+use super::models::{Meal, NewMeal, ReqMeal, Diet, ReqDiet};
 use super::diet_client::get_diet_by_name;
 
 /// Crate Imports
 use crate::schema::meals::dsl::*;
 use crate::db::DbPool;
-use crate::meals::models::DietQuery;
 
 /// Error codes as defined in the Assigment
 const NOT_JSON: &str = "0";
@@ -52,7 +51,7 @@ pub async fn meals_collection_deletion() -> impl Responder {
 /// ## Returns
 /// * [HttpResponse] with a status of 200 and a JSON body containing all meals
 #[get("/meals")]
-pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<DietQuery>) -> impl Responder {
+pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<ReqDiet>) -> impl Responder {
 
     /// Check if the diet query parameter is present and is not empty
     if let Some(diet_name) = &query.diet {
@@ -74,20 +73,13 @@ pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<DietQuery>) -> im
                     match from_str(&diet) {
                         Ok(diet) => diet,
                         Err(e) => {
-                            return HttpResponse::InternalServerError().json(json!({
-                            "message": "Internal Server Error",
-                            "error_code": INTERNAL_SERVER_ERROR,
-                            "error": e.to_string()
-                        }))
+                            return HttpResponse::InternalServerError().body(e.to_string());
                         }
                     }
                 },
                 Err(e) => {
-                    return HttpResponse::NotFound().json(json!({
-                    "message": "Diet not found",
-                    "error_code": DIET_NOT_FOUND,
-                    "error": e.to_string()
-                }))
+                    return HttpResponse::NotFound().body("Diet {} not found".replace("{}", diet_name));
+
                 }
             };
 
@@ -130,11 +122,11 @@ pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<DietQuery>) -> im
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// * `req` - A [HttpRequest] containing the request
-/// * `new_meal` - A [web::Json<NewMeal>] containing the JSON body of the request
+/// * `req_meal` - A [web::Json<ReqMeal>] containing the JSON body of the request with the Requested Meal
 /// ## Returns
 /// * [HttpResponse] with a status of 201 and a JSON body containing the new meal
 #[post("/meals")]
-pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, req_meal: web::Json<ReqMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -150,55 +142,38 @@ pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, new_meal:
         }
     }
 
-    /// Check if new_meal is has all the required fields
-    /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
-    if new_meal.name.is_empty() || new_meal.appetizer.is_none() || new_meal.main.is_none() || new_meal.dessert.is_none() {
+    /// Check if req_meals all fields are present
+    ///
+    /// If they are not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
+    if req_meal.name.is_none() || req_meal.appetizer.is_none() || req_meal.main.is_none() || req_meal.dessert.is_none() {
         return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
     }
+
+    /// Create a new NewMeal struct with the values from the request
+    let new_meal:NewMeal = NewMeal {
+        name: req_meal.name.clone().unwrap(),
+        appetizer: req_meal.appetizer.clone().unwrap(),
+        main: req_meal.main.clone().unwrap(),
+        dessert: req_meal.dessert.clone().unwrap(),
+    };
 
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
 
-    ///Check if the meal with the same name already exists
-    /// If it does, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
-    let meal_exists = meals.filter(name.eq(&*new_meal.name)).select(name).first::<String>(conn);
-    match meal_exists {
-        Ok(e) => {
-            eprintln!("Meal already exists: {}", e);
-            return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
-        }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            // Continue
-        }
-    };
+    let meal = &mut insert_into(meals).values(new_meal).get_result::<Meal>(conn);
 
-    /// Insert [NewMeal] into the database
-    let new_meal = insert_into(meals).values(&*new_meal).get_result::<Meal>(conn);
     /// Check if the insertion was successful
     ///
-    /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -6
-    let new_meal = match new_meal {
-        Ok(new_meal) => new_meal,
+    /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
+    let meal = match meal {
+        Ok(meal) => meal,
         Err(e) => {
             eprintln!("Error: {}", e);
-            return HttpResponse::UnprocessableEntity().body(DISH_ID_NOT_FOUND)
+            return HttpResponse::UnprocessableEntity().body(MEAL_ALREADY_EXISTS)
         }
     };
 
-    /// Get the ID of the newly inserted meal
-    ///
-    /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code -5
-    ///
-    /// TODO: Find a better way to get the ID of the newly inserted dish
-    let new_meal_id = meals.filter(name.eq(&*new_meal.name)).select(id).first::<i32>(conn);
-    let new_meal_id = match new_meal_id {
-        Ok(new_meal_id) => new_meal_id,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::InternalServerError().body(MEAL_NOT_FOUND)
-        }
-    };
+    let new_meal_id = meal.ID;
 
     /// Return a [HttpResponse::Created] with a JSON body containing the ID of the new dish
     HttpResponse::Created().body(new_meal_id.to_string())
@@ -374,16 +349,15 @@ pub async fn delete_meal_by_name(db_pool: Data<DbPool>, meal_name: web::Path<Str
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// * `req` - The [HttpRequest] object
 /// * `req_id` - A [web::Path<i32>] containing the ID of the meal
-/// * `new_meal` - A [web::Json<NewMeal>] containing the new meal data
+/// * `req_meal` - A [web::Json<NewMeal>] containing the new meal data
 /// ## Returns
 /// * [HttpResponse::Ok] on success
 /// * [HttpResponse::UnsupportedMediaType] if the Content-Type is not application/json
 /// * [HttpResponse::UnprocessableEntity] if the new meal data is missing required fields
 /// * [HttpResponse::InternalSexexrrverError] on failure
 /// * [HttpResponse::NotFound] if the meal does not exist
-
 #[put("/meals/{id:\\d+}")]
-pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, req_id: web::Path<i32>, new_meal: web::Json<NewMeal>) -> impl Responder {
+pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, req_id: web::Path<i32>, req_meal: web::Json<ReqMeal>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -399,11 +373,19 @@ pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, req_id: web::P
         }
     }
 
-    /// Check if new_meal is has all the required fields
+    /// Check if req_meal is has all the required fields
     /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
-    if new_meal.name.is_empty() || new_meal.appetizer.is_none() || new_meal.main.is_none() || new_meal.dessert.is_none() {
+    if req_meal.name.is_none() || req_meal.appetizer.is_none() || req_meal.main.is_none() || req_meal.dessert.is_none() {
         return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
     }
+
+    /// Create a [NewMeal] struct from the [ReqMeal] struct
+    let new_meal:NewMeal = NewMeal {
+        name: req_meal.name.clone().unwrap(),
+        appetizer: req_meal.appetizer.clone().unwrap(),
+        main: req_meal.main.clone().unwrap(),
+        dessert: req_meal.dessert.clone().unwrap(),
+    };
 
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
@@ -414,9 +396,7 @@ pub async fn update_meal(db_pool: Data<DbPool>, req: HttpRequest, req_id: web::P
     match meal_exists {
         Ok(meal_exists) => meal_exists,
         Err(e) => {
-
             // Can use this to create a new meal, but not required in assignment
-
             eprintln!("Error: {}", e);
             return HttpResponse::NotFound().body(MEAL_NOT_FOUND)
         }

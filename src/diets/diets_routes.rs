@@ -18,6 +18,7 @@ use super::models::{Diet, NewDiet};
 
 /// Crate imports
 use crate::db::DbPool;
+use crate::diets::models::ReqDiet;
 use crate::schema::diets::dsl::*;
 
 
@@ -46,8 +47,7 @@ pub async fn get_all_diets(db_pool: Data<DbPool>) -> impl Responder {
 
     return match results {
         Ok(results) => {
-
-            /// Convert Vec<Diet> to Vec<NewDiet>
+            /// Convert Vec<Diet> to Vec<ReqDiet>
             let results: Vec<NewDiet> = results.into_iter().map(|diet| NewDiet {
                 name: diet.name,
                 cal: diet.cal,
@@ -77,7 +77,7 @@ pub async fn get_all_diets(db_pool: Data<DbPool>) -> impl Responder {
 /// ## Returns
 /// * [HttpResponse] with a status of 201 and a JSON body containing the new meal
 #[post("/diets")]
-pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet: web::Json<NewDiet>) -> impl Responder {
+pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, req_diet: web::Json<ReqDiet>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -93,11 +93,19 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
         }
     }
 
-    /// Check if new_diet is has all the required fields
+    /// Check if req_diet is has all the required fields
     /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
-    if new_diet.name.is_empty() || new_diet.cal.is_nan() || new_diet.sodium.is_nan() || new_diet.sugar.is_nan() {
+    if req_diet.name.is_none() || req_diet.cal.is_none() || req_diet.sodium.is_none() || req_diet.sugar.is_none() {
         return HttpResponse::UnprocessableEntity().body("Incorrect POST format")
     }
+
+    /// Create a [NewDiet] from the [ReqDiet]
+    let new_diet = NewDiet {
+        name: req_diet.name.clone().unwrap(),
+        cal: req_diet.cal.clone().unwrap(),
+        sodium: req_diet.sodium.clone().unwrap(),
+        sugar: req_diet.sugar.clone().unwrap(),
+    };
 
     /// Create a connection to the database
     let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
@@ -116,7 +124,7 @@ pub async fn create_diet(db_pool: web::Data<DbPool>, req: HttpRequest, new_diet:
     };
 
     /// Insert [NewDiet] into the database
-    let new_diet = insert_into(diets).values(&*new_diet).get_result::<Diet>(conn);
+    let new_diet = insert_into(diets).values(new_diet).get_result::<Diet>(conn);
     /// Check if the insertion was successful
     ///
     /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -6

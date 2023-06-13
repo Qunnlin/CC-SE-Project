@@ -2,7 +2,7 @@
 
 /// Actix imports
 use actix_web::{get, post, delete, HttpResponse, Responder, HttpRequest, web};
-use actix_web::web::{Data, Payload};
+use actix_web::web::{Data};
 
 /// Diesel imports
 use diesel;
@@ -12,8 +12,7 @@ use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 
 /// Misc imports
-use serde_json::{from_slice, json};
-use futures::StreamExt;
+use serde_json::json;
 
 /// Module imports
 use super::models::{Dish, NewDish, ReqDish};
@@ -67,11 +66,11 @@ pub async fn  get_all_dishes(db_pool: Data<DbPool>) -> impl Responder {
 /// ## Arguments
 /// * `db_pool` - A [web::Data<DbPool>] containing the connection pool to the database
 /// * `request` - A [HttpRequest] containing the request
-/// * `payload` - A [Payload] containing the body of the request
+/// * `req_dish` - A [web::Json<ReqDish>] containing the JSON body of the requested dish
 /// ## Returns
 /// * [HttpResponse::Created] with a JSON body containing the ID of the new dish
 #[post("/dishes")]
-pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut payload: Payload) -> impl Responder {
+pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, req_dish: web::Json<ReqDish>) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -87,39 +86,19 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
         }
     }
 
-    /// Read the body of the request
-    ///
-    /// If the body is too large, return a [HttpResponse::PayloadTooLarge]
-    let mut body = web::BytesMut::new();
-    while let Some(chunk) = payload.next().await {
-        let chunk = chunk.unwrap();
-        // limit max size of in-memory payload
-        if (body.len() + chunk.len()) > 262_144 {
-            return HttpResponse::PayloadTooLarge().json(json!({
-                "message": "Payload too large",
-            }))
-        }
-        body.extend_from_slice(&chunk);
-    }
-
-    /// Deserialize the body into a [ReqDish] struct
-    let body = from_slice::<ReqDish>(&body);
-    /// Check if the deserialization was successful and the required fields are present
-    ///
-    /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
-    let body = match body {
-        Ok(body) => body,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
-        }
+    /// Check if req_dish has all the required fields
+    /// If it does, save the name of the dish in a variable
+    /// If it does not, return a [HttpResponse::UnprocessableEntity] with a Error Code -1
+    let dish_name = match req_dish.name.clone() {
+        Some(dish_name) => dish_name,
+        None => return HttpResponse::UnprocessableEntity().body(PARAM_NOT_FOUND)
     };
 
     /// Get the nutrition information from the Ninjas API
     ///
     /// If the API is not responding, return a [HttpResponse::GatewayTimeout] with a Error Code -4
     /// If the dish is not found, return a [HttpResponse::UnprocessableEntity] with a Error Code -3
-    let nut_info = get_nutrition_info(&*body.name).await;
+    let nut_info = get_nutrition_info(&*dish_name).await;
     let nut_info = match nut_info {
         Ok(nut_info) => {
             if nut_info.is_empty() {
@@ -128,7 +107,7 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
                 /// Sum the nutrition information for all the dishes
                 nut_info.iter().fold(NutritionInfo::default(), |acc, x| {
                     NutritionInfo {
-                        name: body.name.clone(),
+                        name: acc.name.clone(),
                         calories: acc.calories + x.calories,
                         sodium_mg: acc.sodium_mg + x.sodium_mg,
                         potassium_mg: acc.potassium_mg + x.potassium_mg,
@@ -156,7 +135,7 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
 
     /// Create a new dish struct with the nutrition information
     let new_dish = NewDish {
-        name: body.name.clone(),
+        name: (&*dish_name).parse().unwrap(),
         cal: nut_info.calories,
         sodium: nut_info.sodium_mg,
         sugar: nut_info.sugar_g,
@@ -164,33 +143,36 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut p
     };
 
     /// Insert the new dish into the database
-    let new_dish = insert_into(dishes).values(new_dish).execute(conn);
+    let dish = &mut insert_into(dishes).values(new_dish).get_result::<Dish>(conn);
+
 
     /// Check if the insertion was successful
     ///
     /// If it was not, return a [HttpResponse::UnprocessableEntity] with a Error Code -2
-    match new_dish {
-        Ok(new_dish) => new_dish,
+    let dish = match dish {
+        Ok(dish) => dish,
         Err(e) => {
             eprintln!("Error: {}", e);
             return HttpResponse::UnprocessableEntity().body(DISH_ALREADY_EXISTS)
         }
     };
 
-    /// Get the ID of the newly inserted dish
-    ///
-    /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code
-    /// TODO: Find a better way to get the ID of the newly inserted dish
-    let new_dish_id = dishes.filter(name.eq(&*body.name)).select(id).first::<i32>(conn);
-    let new_dish_id = match new_dish_id {
-        Ok(new_dish_id) => new_dish_id,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            return HttpResponse::InternalServerError().json(json!({
-                "message": "Error getting dish id",
-            }))
-        }
-    };
+    let new_dish_id = dish.ID;
+
+    // /// Get the ID of the newly inserted dish
+    // ///
+    // /// If retrieving the ID fails, return a [HttpResponse::InternalServerError] with a Error Code
+    // /// TODO: Find a better way to get the ID of the newly inserted dish
+    // let new_dish_id = dishes.filter(name.eq(&*body.name)).select(id).first::<i32>(conn);
+    // let new_dish_id = match new_dish_id {
+    //     Ok(new_dish_id) => new_dish_id,
+    //     Err(e) => {
+    //         eprintln!("Error: {}", e);
+    //         return HttpResponse::InternalServerError().json(json!({
+    //             "message": "Error getting dish id",
+    //         }))
+    //     }
+    //};
 
     /// Return a [HttpResponse::Created] with a JSON body containing the ID of the new dish
     HttpResponse::Created().body(new_dish_id.to_string())

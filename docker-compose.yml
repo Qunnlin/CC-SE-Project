@@ -1,6 +1,10 @@
 version: '3'
 services:
 
+  # HAProxy container
+  # Acts as Reverse Proxy and Load Balancer for the Meals and Diets API
+  # Configuration is stored in haproxy.cfg
+  # Depends on the Meals and Diets API containers
   haproxy:
     image: haproxy:latest
     depends_on:
@@ -13,6 +17,8 @@ services:
     networks:
         - meals
 
+  # Postgres container
+  # Stores the data for the Meals and Diets API
   db:
     image: postgres
     environment:
@@ -29,6 +35,9 @@ services:
     networks:
         - meals
 
+  # Diets API container
+  # Serves the Diets API
+  # Depends on the Postgres container
   diets_api:
     build:
         context: .
@@ -50,6 +59,9 @@ services:
     ports:
         - "5002:8002"
 
+  # Meals API container
+  # Serves the Meals API
+  # Depends on the Postgres container
   meals_api:
     build:
         context: .
