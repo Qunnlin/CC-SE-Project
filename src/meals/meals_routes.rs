@@ -1,5 +1,6 @@
 #![allow(unused_doc_comments)]
 
+use std::collections::BTreeMap;
 /// Actix Imports
 use actix_web::{get, post, delete, put, HttpResponse, Responder, HttpRequest, web};
 use actix_web::web::{Data, Query};
@@ -110,8 +111,10 @@ pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<ReqDiet>) -> impl
         let conn: &mut PooledConnection<ConnectionManager<PgConnection>> = &mut db_pool.get().unwrap();
         /// Get all meals from the database
         let results = meals.load::<Meal>(conn).expect("Error loading meals");
+        /// Convert the meals to JSON indexed by ID
+        let mut all_meals: BTreeMap<i32, Meal> = results.into_iter().map(|meal| (meal.ID, meal)).collect();
         /// Return a 200 response with the meals in the body
-        HttpResponse::Ok().json(results)
+        HttpResponse::Ok().json(all_meals)
     }
 
 }

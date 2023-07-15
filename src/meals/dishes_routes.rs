@@ -14,6 +14,7 @@ use futures::{StreamExt};
 
 /// Misc imports
 use serde_json::json;
+use std::collections::BTreeMap;
 
 /// Module imports
 use super::models::{Dish, NewDish, ReqDish};
@@ -53,6 +54,10 @@ pub async fn  get_all_dishes(db_pool: Data<DbPool>) -> impl Responder {
         Ok(all_dishes) => all_dishes,
         Err(e) => panic!("Error: {}", e),
     };
+    /// Convert Vec<Dish> to JSON object indexed by ID
+    let mut all_dishes: BTreeMap<i32, Dish> = all_dishes.into_iter().map(|dish| (dish.ID, dish)).collect();
+
+
 
     /// Return a JSON response with all the dishes
     HttpResponse::Ok().json(all_dishes)
