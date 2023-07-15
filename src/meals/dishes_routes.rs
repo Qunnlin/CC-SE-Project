@@ -10,6 +10,7 @@ use diesel::prelude::*;
 use diesel::{insert_into, QueryDsl, RunQueryDsl};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
+use futures::{StreamExt};
 
 /// Misc imports
 use serde_json::json;
@@ -70,7 +71,7 @@ pub async fn  get_all_dishes(db_pool: Data<DbPool>) -> impl Responder {
 /// ## Returns
 /// * [HttpResponse::Created] with a JSON body containing the ID of the new dish
 #[post("/dishes")]
-pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, req_dish: web::Json<ReqDish>) -> impl Responder {
+pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, mut payload: web::Payload) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -85,6 +86,22 @@ pub async fn create_dish(db_pool: web::Data<DbPool>, request: HttpRequest, req_d
             return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
         }
     }
+
+    /// Deserialize the JSON body ( This step is technically not needed, but the stupid test fails otherwise.
+    /// Alternatively I could just automatically deserialize the body in the function call using web::Json<ReqDish> )
+    /// If the JSON body is not valid, return a [HttpResponse::UnprocessableEntity] with a Error Code 0
+    let mut payload_bytes = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        payload_bytes.extend_from_slice(&item.unwrap());
+    }
+
+    let req_dish: ReqDish = match serde_json::from_slice(&payload_bytes) {
+        Ok(req_dish) => req_dish,
+        Err(e) => {
+            println!("Error: {}", e);
+            return HttpResponse::UnprocessableEntity().body(NOT_JSON)
+        }
+    };
 
     /// Check if req_dish has all the required fields
     /// If it does, save the name of the dish in a variable

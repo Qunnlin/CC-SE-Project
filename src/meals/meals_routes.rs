@@ -12,6 +12,7 @@ use diesel::r2d2::{ConnectionManager, PooledConnection};
 
 /// Misc Imports
 use std::string::ToString;
+use futures::StreamExt;
 use serde_json::{from_str, json};
 
 /// Module Imports
@@ -78,6 +79,7 @@ pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<ReqDiet>) -> impl
                     }
                 },
                 Err(e) => {
+                    println!("{}", e);
                     return HttpResponse::NotFound().body("Diet {} not found".replace("{}", diet_name));
 
                 }
@@ -126,7 +128,7 @@ pub async fn get_all_meals(db_pool: Data<DbPool>, query: Query<ReqDiet>) -> impl
 /// ## Returns
 /// * [HttpResponse] with a status of 201 and a JSON body containing the new meal
 #[post("/meals")]
-pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, req_meal: web::Json<ReqMeal>) -> impl Responder {
+pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, mut payload: web::Payload) -> impl Responder {
 
     /// Check if the Content-Type is application/json
     ///
@@ -141,6 +143,22 @@ pub async fn create_meal(db_pool: web::Data<DbPool>, req: HttpRequest, req_meal:
             return HttpResponse::UnsupportedMediaType().body(NOT_JSON)
         }
     }
+
+    /// Deserialize the JSON body ( This step is technically not needed, but the stupid test fails otherwise.
+    /// Alternatively I could just automatically deserialize the body in the function call using web::Json<ReqMeal> )
+    /// If the JSON body is not valid, return a [HttpResponse::UnprocessableEntity] with a Error Code 0
+    let mut payload_bytes = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        payload_bytes.extend_from_slice(&item.unwrap());
+    }
+
+    let req_meal:ReqMeal = match serde_json::from_slice(&payload_bytes) {
+        Ok(req_meal) => req_meal,
+        Err(e) => {
+            println!("{}", e);
+            return HttpResponse::UnprocessableEntity().body(NOT_JSON);
+        }
+    };
 
     /// Check if req_meals all fields are present
     ///
