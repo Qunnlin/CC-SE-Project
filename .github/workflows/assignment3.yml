@@ -82,8 +82,8 @@ jobs:
       - name: Check Service is running
         run: docker ps
 
-#      - name: Checkout code
-#        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Download logfile
         uses: actions/download-artifact@v2
@@ -109,8 +109,8 @@ jobs:
 #      - name: Check container is running
 #        run: docker ps
 
-#      - name: Log container health
-#        run: docker logs meals-api
+      - name: Log container health
+        run: docker logs meals-api
 
 #      - name: Check if api is running
 #        run: curl localhost:8000
