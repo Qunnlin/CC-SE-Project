@@ -7,12 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
-      NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
-      DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
 
     services:
       db:
@@ -59,6 +53,12 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
+      NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
+      DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
     services:
       db:
         image: postgres:latest
@@ -80,6 +80,9 @@ jobs:
           name: log
           path: ./
 
+      - name: print url of db service
+        run: echo $DB_PORT_5432_TCP_ADDR
+
       - name: Download Docker image
         uses: actions/download-artifact@v2
         with:
@@ -96,10 +99,10 @@ jobs:
         run: sleep 5
 
       - name: Log container DATABASE_URL
-        run: docker exec meals-api printenv DATABASE_URL >> log.txt
+        run: docker exec meals-api printenv DATABASE_URL
 
       - name: Log container health
-        run: docker logs meals-api >> log.txt
+        run: docker logs meals-api
 
       - name: Install pytest
         run: pip install pytest
@@ -124,6 +127,12 @@ jobs:
   query:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
+      NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
+      DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
     services:
       db:
         image: postgres:latest
