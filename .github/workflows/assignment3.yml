@@ -7,11 +7,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dishes
+        ports:
+          - 5432:5432
+        networks:
+          - meals
+
 
     steps:
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Log workflow start
         run: printf "%s\n" "$(date -Iminutes)" >> log.txt
@@ -19,11 +31,17 @@ jobs:
       - name: Log submitter name
         run: printf "Felix Schick\n" >> log.txt
 
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile.assignment3 --tag meals-api && printf "image successfully built\n" >> log.txt || printf "image not able to be built\n" >> log.txt
+      - name: Setup Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Save Docker image
-        run: docker save meals-api > /tmp/meals-api.tar
+      - name: Build Docker image and Export
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile.assignment3
+          tags: meals-api
+          output: type=docker,dest=/tmp/meals-api.tar
 
       - name: Upload Docker image
         uses: actions/upload-artifact@v2
@@ -42,16 +60,41 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: meals-api
+      options: --network=meals
     env:
       NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
       NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
       DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
+    services:
+      db:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dishes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
 
     steps:
+
+      - name: Check Service is running
+        run: docker ps
+
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Check DB connection
+        run: docker exec -it meals-api python3 -c "import psycopg2; conn = psycopg2.connect('dbname=dishes user=postgres password=password host=db'); print('DB connection successful')"
 
       - name: Download logfile
         uses: actions/download-artifact@v2
@@ -59,24 +102,17 @@ jobs:
           name: log
           path: ./
 
-      - name: print url of db service
-        run: echo $DB_PORT_5432_TCP_ADDR
-
       - name: Download Docker image
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: meals-api
           path: /tmp
 
       - name: Load Docker image
-        run: docker load < /tmp/meals-api.tar
+        run: docker load --input /tmp/meals-api.tar
 
-      - name: Create Docker network
-        run: docker network create meals
-
-      - name: Start DB service
-        run: |
-          docker run --network=meals -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=dishes -p 5432:5432 -d postgres:latest 
+      - name: Check container is loaded
+        run: docker images ls
 
       - name: Run container
         run: docker run -d --name meals-api -p 8000:8000 --network=meals -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
@@ -84,14 +120,16 @@ jobs:
       - name: Wait for container to start
         run: sleep 5
 
-      - name: Log container DATABASE_URL
-        run: docker exec meals-api printenv DATABASE_URL
+      - name: Check container is running
+        run: docker ps
 
       - name: Log container health
         run: docker logs meals-api
 
-      - name: Install pytest
-        run: pip install pytest
+      - name: Install pytest & requests
+        run: |
+          pip install pytest
+          pip install requests
 
       - name: Run tests
         run: pytest -v tests/assn3_tests.py > assn3_test_results.txt && printf "tests succeeded\n" >> log.txt || printf "tests failed\n" >> log.txt
@@ -119,29 +157,36 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
       DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
+    services:
+      db:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dishes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Download Docker image
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: meals-api
           path: /tmp
 
       - name: Load Docker image
-        run: docker load < /tmp/meals-api.tar
-
-      - name: Create Docker network
-        run: docker network create meals
-
-      - name: Start DB service
-        run: |
-          docker run --network=meals -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=dishes -p 5432:5432 -d postgres:latest 
+        run: docker load --input /tmp/meals-api.tar
 
       - name: Run container
-        run: docker run -d --name meals-api -p 8000:8000 --network=meals -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
+        run: docker run -d --name meals-api -p 8000:8000 -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
 
       - name: Wait for container to start
         run: sleep 5
@@ -164,7 +209,7 @@ jobs:
           done < query.txt
 
       - name: Upload results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: results
           path: ./result.txt
