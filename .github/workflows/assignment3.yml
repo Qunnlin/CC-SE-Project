@@ -7,19 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dishes
-        ports:
-          - 5432:5432
-        networks:
-          - meals
-
-
     steps:
 
       - name: Checkout code
