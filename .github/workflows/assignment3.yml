@@ -28,7 +28,7 @@ jobs:
           context: .
           file: ./Dockerfile.assignment3
           tags: meals-api
-          output: type=docker,dest=/tmp/meals-api.tar
+          outputs: type=docker, dest=/tmp/meals-api.tar
 
       - name: Upload Docker image
         uses: actions/upload-artifact@v2
