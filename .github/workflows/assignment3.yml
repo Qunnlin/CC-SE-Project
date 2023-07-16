@@ -78,10 +78,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: log
-          path: ./log.txt
-
-      - name: Print logfile locally
-        run: ls -al && cat log.txt
+          path: ./
 
       - name: Download Docker image
         uses: actions/download-artifact@v2
@@ -106,7 +103,7 @@ jobs:
         if: always()
         with:
           name: test_results
-          path: assn3_test_results.txt
+          path: ./assn3_test_results.txt
 
       - name: Upload logfile
         uses: actions/upload-artifact@v2
