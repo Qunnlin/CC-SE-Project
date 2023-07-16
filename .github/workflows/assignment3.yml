@@ -80,6 +80,9 @@ jobs:
           name: log
           path: ./log.txt
 
+      - name: Print logfile locally
+        run: ls -al && cat log.txt
+
       - name: Download Docker image
         uses: actions/download-artifact@v2
         with:
