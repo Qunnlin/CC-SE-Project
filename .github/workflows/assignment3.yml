@@ -27,7 +27,8 @@ jobs:
 
     steps:
       - name: Log workflow start
-        run: echo date -Iminutes >> log.txt
+        run: echo $(date -Iminutes) >> log.txt
+
       - name: Log submitter name
         run: echo "Felix Schick" >> log.txt
 
@@ -77,6 +78,9 @@ jobs:
         with:
           name: log
           path: log.txt
+
+      - name: Unzip logfile
+        run: gunzip log.txt.zip
 
       - name: Download Docker image
         uses: actions/download-artifact@v2
