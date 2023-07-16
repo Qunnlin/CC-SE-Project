@@ -22,13 +22,19 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build Docker image and Export
         uses: docker/build-push-action@v3
         with:
           context: .
           file: ./Dockerfile.assignment3
-          tags: meals-api
-          outputs: type=docker, dest=/tmp/meals-api.tar
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/meals-api:latest
 
       - name: Upload Docker image
         uses: actions/upload-artifact@v2
@@ -47,12 +53,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    env:
-      NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
-      NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
-      DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
     services:
       db:
         image: postgres:latest
@@ -67,6 +67,14 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      meals-api:
+        image: ${{ secrets.DOCKER_USERNAME }}/meals-api:latest
+        env:
+          NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
+          NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
+          DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
 
 
     steps:
@@ -74,8 +82,8 @@ jobs:
       - name: Check Service is running
         run: docker ps
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+#      - name: Checkout code
+#        uses: actions/checkout@v2
 
       - name: Download logfile
         uses: actions/download-artifact@v2
@@ -83,32 +91,29 @@ jobs:
           name: log
           path: ./
 
-      - name: Download Docker image
-        uses: actions/download-artifact@v3
-        with:
-          name: meals-api
-          path: /tmp
+#      - name: Download Docker image
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: meals-api
+#          path: /tmp
 
-      - name: Load Docker image
-        run: docker load --input /tmp/meals-api.tar
+#      - name: Load Docker image
+#        run: docker load --input /tmp/meals-api.tar
 
-      - name: Check container is loaded
-        run: docker images ls
+#      - name: Run container
+#        run: docker run -d --name meals-api -p 8000:8000 --net=host -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
 
-      - name: Run container
-        run: docker run -d --name meals-api -p 8000:8000 --net=host -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
+#      - name: Wait for container to start
+#        run: sleep 10
 
-      - name: Wait for container to start
-        run: sleep 10
+#      - name: Check container is running
+#        run: docker ps
 
-      - name: Check container is running
-        run: docker ps
+#      - name: Log container health
+#        run: docker logs meals-api
 
-      - name: Log container health
-        run: docker logs meals-api
-
-      - name: Check if api is running
-        run: curl localhost:8000
+#      - name: Check if api is running
+#        run: curl localhost:8000
 
       - name: Install pytest & requests
         run: |
