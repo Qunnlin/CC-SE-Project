@@ -7,18 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dishes
-        ports:
-          - 5432:5432
-        networks:
-          - meals
-
 
     steps:
 
@@ -60,21 +48,6 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
       DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
-    networks:
-      meals:
-        driver: bridge
-    services:
-      db:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dishes
-        ports:
-          - 5432:5432
-        networks:
-          - meals
-
 
     steps:
       - name: Checkout code
@@ -97,6 +70,13 @@ jobs:
 
       - name: Load Docker image
         run: docker load < /tmp/meals-api.tar
+
+      - name: Create Docker network
+        run: docker network create meals
+
+      - name: Start DB service
+        run: |
+          docker run --network=meals -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=dishes -p 5432:5432 -d postgres:latest 
 
       - name: Run container
         run: docker run -d --name meals-api -p 8000:8000 --network=meals -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
@@ -142,17 +122,6 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
       DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
-    services:
-      db:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dishes
-        ports:
-          - 5432:5432
-        networks:
-          - meals
 
     steps:
       - name: Checkout code
@@ -166,6 +135,13 @@ jobs:
 
       - name: Load Docker image
         run: docker load < /tmp/meals-api.tar
+
+      - name: Create Docker network
+        run: docker network create meals
+
+      - name: Start DB service
+        run: |
+          docker run --network=meals -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=dishes -p 5432:5432 -d postgres:latest 
 
       - name: Run container
         run: docker run -d --name meals-api -p 8000:8000 --network=meals -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
