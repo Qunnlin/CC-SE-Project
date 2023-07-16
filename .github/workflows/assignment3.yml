@@ -47,9 +47,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    container:
-      image: meals-api
-      options: --network=meals
     env:
       NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
       NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
