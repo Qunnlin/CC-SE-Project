@@ -3,7 +3,7 @@ name: assignment3
 on:
   push:
     branches:
-      - [ "main" ]
+      - [ "submission3", "main" ]
 
 jobs:
   build:
