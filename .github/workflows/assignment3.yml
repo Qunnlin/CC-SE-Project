@@ -68,7 +68,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       meals-api:
-        image: ${{ secrets.DOCKER_USERNAME }}/meals-api:latest
+        image: qunnlin/meals-api:latest
         env:
           NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
           NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
