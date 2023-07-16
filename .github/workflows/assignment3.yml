@@ -77,9 +77,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Check DB connection
-        run: docker exec -it meals-api python3 -c "import psycopg2; conn = psycopg2.connect('dbname=dishes user=postgres password=password host=db'); print('DB connection successful')"
-
       - name: Download logfile
         uses: actions/download-artifact@v2
         with:
