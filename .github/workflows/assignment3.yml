@@ -7,6 +7,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NINJAS_API_KEY: ${{ secrets.NINJAS_API_KEY }}
+      NINJAS_API_BASE_URL: ${{ secrets.NINJAS_API_BASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MEALS_SERVICE_URL: ${{ secrets.MEALS_SERVICE_URL }}
+      DIETS_SERVICE_URL: ${{ secrets.DIETS_SERVICE_URL }}
+
     services:
       postgres:
         image: postgres:latest
@@ -28,7 +35,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build the Docker image
-        run: docker build . --file Dockerfile.assignment3 --tag meals-api && echo "image successfully built" >> log.txt || echo "image not able to be built" >> log.txt
+        run: docker build --build-arg NINJAS_API_KEY=$NINJAS_API_KEY --build-arg NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL --build-arg DATABASE_URL=$DATABASE_URL --build-arg MEALS_SERVICE_URL=$MEALS_SERVICE_URL --build-arg DIETS_SERVICE_URL=$DIETS_SERVICE_URL . --file Dockerfile.assignment3 --tag meals-api && echo "image successfully built" >> log.txt || echo "image not able to be built" >> log.txt
 
       - name: Save Docker image
         run: docker save meals-api > /tmp/meals-api.tar
@@ -106,6 +113,15 @@ jobs:
   query:
     needs: test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dishes
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code

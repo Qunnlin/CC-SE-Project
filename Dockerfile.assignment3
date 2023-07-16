@@ -28,7 +28,6 @@ FROM chef AS runtime
 WORKDIR /usr/local/bin
 
 COPY --from=builder /usr/src/meals_api/target/release/meals_api .
-COPY --from=builder /usr/src/meals_api/.env .env
 
 ENTRYPOINT ["/usr/local/bin/meals_api"]
 
