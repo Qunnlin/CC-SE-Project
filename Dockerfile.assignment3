@@ -28,7 +28,7 @@ FROM chef AS runtime
 WORKDIR /usr/local/bin
 
 COPY --from=builder /usr/src/meals_api/target/release/meals_api .
+EXPOSE 8000
 
 ENTRYPOINT ["/usr/local/bin/meals_api"]
 
-EXPOSE 8000
