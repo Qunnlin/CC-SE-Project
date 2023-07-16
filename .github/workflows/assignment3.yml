@@ -80,7 +80,7 @@ jobs:
           path: log.txt
 
       - name: Unzip logfile
-        run: gunzip log.txt.zip
+        run: gunzip log.txt
 
       - name: Download Docker image
         uses: actions/download-artifact@v2
