@@ -90,7 +90,7 @@ jobs:
         run: docker load < /tmp/meals-api.tar
 
       - name: Run container
-        run: docker run -d --name meals-api -p 8000:8000 meals-api -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
+        run: docker run -d --name meals-api -p 8000:8000 -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
 
       - name: Wait for container to start
         run: sleep 5
@@ -148,7 +148,7 @@ jobs:
         run: docker load < /tmp/meals-api.tar
 
       - name: Run container
-        run: docker run -d --name meals-api -p 8000:8000 meals-api -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
+        run: docker run -d --name meals-api -p 8000:8000 -e NINJAS_API_KEY=$NINJAS_API_KEY -e NINJAS_API_BASE_URL=$NINJAS_API_BASE_URL -e DATABASE_URL=$DATABASE_URL -e MEALS_SERVICE_URL=$MEALS_SERVICE_URL -e DIETS_SERVICE_URL=$DIETS_SERVICE_URL meals-api && printf "Container up and running\n" >> log.txt || printf "Container failed to run\n" >> log.txt
 
       - name: Wait for container to start
         run: sleep 5
