@@ -1,0 +1,46 @@
+version: '3'
+services:
+# Postgres container
+# Stores the data for the Meals and Diets API
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dishes
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - meals
+
+  # Meals API container
+  # Serves the Meals API
+  # Depends on the Postgres container
+  meals_api:
+    image: meals-api:v3
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - meals
+    env_file:
+      - .env
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+
+networks:
+  meals:
+    driver: bridge
