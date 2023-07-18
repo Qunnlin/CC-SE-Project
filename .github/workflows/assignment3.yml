@@ -91,13 +91,10 @@ jobs:
         run: docker-compose -f docker-compose.assn3.yml up -d
 
       - name: Wait for container to start
-        run: sleep 10
+        run: sleep 5
 
       - name: Check container is running
         run: docker ps
-
-      - name: Log container health
-        run: docker logs meals-api
 
       - name: Check if api is running
         run: curl localhost:8000
@@ -165,7 +162,7 @@ jobs:
         run: docker-compose -f docker-compose.assn3.yml up -d
 
       - name: Wait for container to start
-        run: sleep 10
+        run: sleep 5
 
       - name: Run queries
         run: |
