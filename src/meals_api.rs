@@ -16,7 +16,7 @@ use db::{create_pool, DbPool, run_migrations};
 use meals::*;
 
 const HOST: &str = "0.0.0.0";
-const PORT: u16 = 8001;
+const PORT: u16 = 8000;
 
 ///
 /// # Creates the default route for the API in "/"
