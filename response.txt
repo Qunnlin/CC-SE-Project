@@ -1,0 +1,6 @@
+salmon contains 208.7 calories, 61.0 mgs of sodium, and 0.0 grams of sugar
+rice contains 127.4 calories, 1.0 mgs of sodium, and 0.1 grams of sugar
+beans contains 91.3 calories, 339.0 mgs of sodium, and 7.9 grams of sugar
+yogurt contains 64.2 calories, 69.0 mgs of sodium, and 7.1 grams of sugar
+ice cream contains 207.1 calories, 78.0 mgs of sodium, and 21.3 grams of sugar
+milk contains 51.3 calories, 52.0 mgs of sodium, and 0.0 grams of sugar
