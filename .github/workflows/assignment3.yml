@@ -101,6 +101,9 @@ jobs:
           pip install pytest
           pip install requests
 
+      - name: Wait for container to start
+        run: sleep 5
+
       - name: Run tests
         run: pytest -v tests/assn3_tests.py > assn3_test_results.txt && printf "tests succeeded\n" >> log.txt || printf "tests failed\n" >> log.txt
 
@@ -149,6 +152,9 @@ jobs:
 
       - name: Install request
         run: pip install requests
+
+      - name: Wait for container to start
+        run: sleep 5
 
       - name: Run queries
         run: python3 tests/querys.py
