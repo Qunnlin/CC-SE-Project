@@ -23,6 +23,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build Docker image and Export
+        id: build_image
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -33,11 +34,11 @@ jobs:
       - name: Check and log build status
         id: check_status
         run: |
-          if ${{ steps.docker_build.outcome == 'success' }}
+          if ${{ steps.build_image.outcome == 'success' }}
           then
-          printf "image successfully built" >> log.txt
+          printf "image successfully built\n" >> log.txt
           else
-          printf "image not able to be built" >> log.txt
+          printf "image not able to be built\n" >> log.txt
           fi
 
       - name: Upload Docker image
@@ -57,20 +58,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-#   services:
-#      db:
-#        image: postgres:latest
-#        env:
-#          POSTGRES_USER: postgres
-#          POSTGRES_PASSWORD: password
-#          POSTGRES_DB: dishes
-#        ports:
-#          - 5432:5432
-#        options: >-
-#          --health-cmd pg_isready
-#          --health-interval 10s
-#          --health-timeout 5s
-#          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -134,20 +121,6 @@ jobs:
   query:
     needs: test
     runs-on: ubuntu-latest
-#    services:
-#      db:
-#        image: postgres:latest
-#        env:
-#          POSTGRES_USER: postgres
-#          POSTGRES_PASSWORD: password
-#          POSTGRES_DB: dishes
-#        ports:
-#          - 5432:5432
-#        options: >-
-#          --health-cmd pg_isready
-#          --health-interval 10s
-#          --health-timeout 5s
-#          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -174,27 +147,11 @@ jobs:
       - name: Wait for container to start
         run: sleep 5
 
+      - name: Install request
+        run: pip install requests
+
       - name: Run queries
-        run: |
-          while IFS= read -r dish
-          do
-            echo "Dish: $dish"
-            post_response=$(curl -X POST http://localhost:8000/dishes --data "{\"name\": \"$dish\"}")
-            echo "Post Response: $post_response"
-            response=$(curl -X GET http://localhost:8000/dishes/$dish)
-          
-            
-            echo "Response: $response"  # Debug line
-
-
-            # Parse the response
-            calories=$(echo "$response" | jq '.cal')
-            sodium=$(echo "$response" | jq '.sodium')
-            sugar=$(echo "$response" | jq '.sugar')
-          
-            # Write to the response file
-            printf "$dish contains $calories calories, $sodium mgs of sodium, and $sugar grams of sugar\n" >> response.txt
-          done < query.txt
+        run: python3 tests/querys.py
 
       - name: Upload results
         uses: actions/upload-artifact@v3
