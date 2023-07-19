@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile.assignment3
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
       interval: 5s
       timeout: 5s
       retries: 5
