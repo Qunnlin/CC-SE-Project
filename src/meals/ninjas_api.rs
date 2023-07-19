@@ -76,8 +76,9 @@ impl Default for NutritionInfo {
 /// Create a static instance of the API configuration ard populate it from the .env file
 lazy_static! {
     static ref API_CONFIG: APIConfig = {
-        dotenv().expect("Failed to read .env file");
+        dotenv().ok();
         let base_url = env::var("NINJAS_API_BASE_URL").expect("NINJA_API_BASE_URL must be set").to_owned();
+        println!("{}", base_url);
         let api_key = env::var("NINJAS_API_KEY").expect("NINJA_API_KEY must be set").to_owned();
         APIConfig {
             base_url,

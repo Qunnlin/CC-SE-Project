@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile.assignment3
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,9 +40,9 @@ services:
     env_file:
       - .env
     expose:
-      - "8000"
+      - "8001"
     ports:
-      - "8000:8000"
+      - "8000:8001"
 
 networks:
   meals:
