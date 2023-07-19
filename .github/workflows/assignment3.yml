@@ -42,13 +42,13 @@ jobs:
           fi
 
       - name: Upload Docker image
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: meals-api
           path: /tmp/meals-api.tar
 
       - name: Upload logfile
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: log
@@ -61,10 +61,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download logfile
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: log
           path: ./
@@ -84,11 +84,6 @@ jobs:
       - name: Load Docker image
         run: docker load --input /tmp/meals-api.tar
 
-      - name: Check Port 8000
-        run: |
-          sudo apt-get install -y net-tools
-          netstat -tuln | grep 8000 || echo "Port 8000 is free"
-
       - name: Run Docker Compose
         run: docker-compose -f docker-compose.assn3.yml up -d
 
@@ -106,21 +101,18 @@ jobs:
           pip install pytest
           pip install requests
 
-      - name: Wait for container to start
-        run: sleep 5
-
       - name: Run tests
         run: pytest -v tests/assn3_tests.py > assn3_test_results.txt && printf "tests succeeded\n" >> log.txt || printf "tests failed\n" >> log.txt
 
       - name: Upload Test results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: test_results
           path: ./assn3_test_results.txt
 
       - name: Upload logfile
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: log
@@ -132,12 +124,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Check Port 8000
-        run: |
-          sudo apt-get install -y net-tools
-          netstat -tuln | grep 8000 || echo "Port 8000 is free"
+        uses: actions/checkout@v3
 
       - name: Set .env file
         run: |
@@ -163,14 +150,11 @@ jobs:
       - name: Install request
         run: pip install requests
 
-      - name: Wait for container to start
-        run: sleep 5
-
       - name: Run queries
         run: python3 tests/querys.py
 
       - name: Upload results
         uses: actions/upload-artifact@v3
         with:
-          name: results
-          path: ./result.txt
+          name: response
+          path: ./response.txt

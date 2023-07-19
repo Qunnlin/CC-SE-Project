@@ -169,4 +169,5 @@ Cargo.lock
 # Pytest
 .pytest_cache
 
+response.txt
 # End of https://www.toptal.com/developers/gitignore/api/rust,clion,macos
