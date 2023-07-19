@@ -14,11 +14,11 @@ with open('response.txt', 'w') as r:
 
         # Make the POST request
         post_data = {"name": dish}
-        post_response = requests.post("http://localhost:8000/dishes", json=post_data)
+        post_response = requests.post(url="http://localhost:8000/dishes", json=post_data,  headers={"Content-Type": "application/json"})
         print(f"Post Response: {post_response.text}")
 
         # Make the GET request
-        get_response = requests.get(f"http://localhost:8000/dishes/{dish}")
+        get_response = requests.get(url=f"http://localhost:8000/dishes/{dish}",  headers={"Content-Type": "application/json"})
         print(f"Response: {get_response.text}")
 
         # Parse the response

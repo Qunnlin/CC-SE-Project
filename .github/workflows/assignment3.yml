@@ -84,6 +84,11 @@ jobs:
       - name: Load Docker image
         run: docker load --input /tmp/meals-api.tar
 
+      - name: Check Port 8000
+        run: |
+          sudo apt-get install -y net-tools
+          netstat -tuln | grep 8000 || echo "Port 8000 is free"
+
       - name: Run Docker Compose
         run: docker-compose -f docker-compose.assn3.yml up -d
 
@@ -128,6 +133,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Check Port 8000
+        run: |
+          sudo apt-get install -y net-tools
+          netstat -tuln | grep 8000 || echo "Port 8000 is free"
 
       - name: Set .env file
         run: |

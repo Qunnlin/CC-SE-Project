@@ -65,7 +65,7 @@ services:
   meals_api:
     build:
         context: .
-        dockerfile: Dockerfile.assignment3
+        dockerfile: Dockerfile.meals
     image: meals_api:v2
     restart: always
     healthcheck:

@@ -23,6 +23,9 @@ services:
   # Depends on the Postgres container
   meals_api:
     image: meals-api:v3
+    build:
+      context: .
+      dockerfile: Dockerfile.assignment3
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001"]
