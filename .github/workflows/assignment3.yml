@@ -176,10 +176,13 @@ jobs:
 
       - name: Run queries
         run: |
-          while IFS= read -r food_item
+          while IFS= read -r dish
           do
-            curl -X POST http://localhost:8000/dishes --data "{\"name\": \"$food_item\"}"
-            response=$(curl -X GET http://localhost:8000/dishes/$food_item)
+            echo "Dish: $dish"
+            post_response=$(curl -X POST http://localhost:8000/dishes --data "{\"name\": \"$dish\"}")
+            echo "Post Response: $post_response"
+            response=$(curl -X GET http://localhost:8000/dishes/$dish)
+          
             
             echo "Response: $response"  # Debug line
 
@@ -190,7 +193,7 @@ jobs:
             sugar=$(echo "$response" | jq '.sugar')
           
             # Write to the response file
-            printf "$food_item contains $calories calories, $sodium mgs of sodium, and $sugar grams of sugar\n" >> response.txt
+            printf "$dish contains $calories calories, $sodium mgs of sodium, and $sugar grams of sugar\n" >> response.txt
           done < query.txt
 
       - name: Upload results
