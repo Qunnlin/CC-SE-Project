@@ -9,12 +9,13 @@ def find_file(start_path, filename):
     return None
 # Search for query.txt in repository
 start_path = os.getcwd()
-filename = '../query.txt'
+filename = 'query.txt'
 
 file_path = find_file(start_path, filename)
 
 if file_path is None:
     print(f"The file '{filename}' was not found. Please provide a query.txt file in the root or tests directory")
+    raise FileNotFoundError
 else:
     print(f"The file '{filename}' was found at: {file_path}")
 
