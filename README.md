@@ -13,6 +13,22 @@ Additionally, a reverse proxy is added to the deployment to allow load balancing
 - **HAProxy** is used as a reverse proxy and load balancer.
 - To improve docker build times, **cargo-chef** is used to cache the dependencies.
 
+## Assignment 3
+
+For Assignment 3 we were supposed to implement a Github Action Workflow that
+
+1. Builds the Docker image of the Assignment 1 state of the meals API and logs it success
+2. Runs a custom pytest against this image and logs its results
+3. Runs queries based on the [query.txt](query.txt) file and log its result
+
+### Replacing the query.txt
+
+I provided an example [query.txt](query.txt), which can just be replaced. The [querys.py](tests/querys.py) should be able to find the query.txt file anywhere in the repository.  
+
+### Running tests
+
+The [assn3_tests.py](tests/assn3_tests.py) implements the pytests after the [Assignment 3 Specification](specification/assignment3_requirements.pdf) and executes them in job 2 (test) of the Github Action workflow. Even if some tests fail, the workflow continues. The failed tests will be logged in the log.txt.  
+This repository was also tested against the ass_1_tests for Submission 1, passing all 34.
 
 ## Getting Started
 
@@ -48,6 +64,7 @@ docker compose down
 ### Assignment specifications:
 - [Assignment 1 Specification](specification/assignment1_requirements.pdf)
 - [Assignment 2 Specification](specification/assignment2_requirements.pdf)
+- [Assignment 3 Specification](specification/assignment3_requirements.pdf)
 
 
 ### Used Crates and External APIs:
